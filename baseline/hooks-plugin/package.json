@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@zcode-starterkit/hooks-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "ZCode shell hooks porting OpenCode baseline event-hook plugins + memory auto-capture/inject.",
+  "type": "module"
+}

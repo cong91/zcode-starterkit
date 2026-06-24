@@ -1,0 +1,7 @@
+{
+  "name": "hooks",
+  "version": "0.1.0",
+  "description": "ZCode shell hooks porting OpenCode baseline event-hook plugins (guard, rtk, prompt-leverage, session-summary) + memory auto-capture/inject. ZCode supports PreToolUse, PostToolUse, UserPromptSubmit, Stop hooks.",
+  "author": { "name": "zcode-starterkit" },
+  "license": "MIT"
+}

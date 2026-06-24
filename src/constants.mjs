@@ -24,6 +24,7 @@ export const MARKETPLACE_NAME = 'zcode-starterkit'
 export const CORE_PLUGIN_NAME = 'core'
 export const AGENTS_PLUGIN_NAME = 'agents-config'
 export const MCP_TOOLS_PLUGIN_NAME = 'mcp-tools'
+export const HOOKS_PLUGIN_NAME = 'hooks'
 export const PLUGIN_VERSION = '0.1.0'
 
 // ZCode layout under ZCODE_HOME

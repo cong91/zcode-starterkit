@@ -18,6 +18,7 @@ import { csearchTool, csearchExecute } from './tools/csearch.js'
 import { memoryTools, memoryExecute } from './tools/memory.js'
 import { sessionsTools, sessionsExecute } from './tools/sessions.js'
 import { srcwalkTools, srcwalkExecute } from './tools/srcwalk.js'
+import { skillMcpTools, skillMcpExecute } from './tools/skill-mcp.js'
 
 const ALL_TOOLS = [
   context7Tool,
@@ -26,6 +27,7 @@ const ALL_TOOLS = [
   ...memoryTools,
   ...sessionsTools,
   ...srcwalkTools,
+  ...skillMcpTools,
 ]
 
 const EXECUTORS: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {
@@ -35,6 +37,7 @@ const EXECUTORS: Record<string, (args: Record<string, unknown>) => Promise<unkno
   ...memoryExecute,
   ...sessionsExecute,
   ...srcwalkExecute,
+  ...skillMcpExecute,
 }
 
 const server = new Server(

@@ -33,10 +33,26 @@ test('registerMarketplace writes marketplace.json listing all plugins', () => {
   const mp = registerMarketplace({ zcodeHome: home, packaged })
   const mpJson = JSON.parse(fs.readFileSync(mp.marketplacePath, 'utf8'))
   assert.equal(mpJson.name, 'zcode-starterkit')
-  assert.equal(mpJson.plugins.length, 3)
+  assert.equal(mpJson.plugins.length, 4)
   assert.ok(mpJson.plugins.some((p) => p.name === 'core'))
   assert.ok(mpJson.plugins.some((p) => p.name === 'agents-config'))
   assert.ok(mpJson.plugins.some((p) => p.name === 'mcp-tools'))
+  assert.ok(mpJson.plugins.some((p) => p.name === 'hooks'))
+})
+
+test('hooks plugin carries hook scripts and a hooks.json manifest', () => {
+  const home = sandboxHome()
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  const hooksDir = packaged.hooksPluginDir
+  assert.ok(fs.existsSync(path.join(hooksDir, 'hooks', 'hooks.json')), 'hooks.json must be packaged')
+  assert.ok(fs.existsSync(path.join(hooksDir, 'hooks', 'guard.mjs')), 'guard.mjs must be packaged')
+  assert.ok(fs.existsSync(path.join(hooksDir, 'hooks', 'memory-capture.mjs')), 'memory-capture.mjs must be packaged')
+  assert.ok(fs.existsSync(path.join(hooksDir, '.zcode-plugin', 'plugin.json')), 'hooks plugin.json must exist')
+  const hooksJson = JSON.parse(fs.readFileSync(path.join(hooksDir, 'hooks', 'hooks.json'), 'utf8'))
+  assert.ok(hooksJson.hooks.PreToolUse, 'PreToolUse hook must be registered')
+  assert.ok(hooksJson.hooks.PostToolUse, 'PostToolUse hook must be registered')
+  assert.ok(hooksJson.hooks.UserPromptSubmit, 'UserPromptSubmit hook must be registered')
+  assert.ok(hooksJson.hooks.Stop, 'Stop hook must be registered')
 })
 
 test('mcp-tools plugin carries a bundle and an mcpServers entry', () => {
@@ -62,6 +78,7 @@ test('enablePlugins sets all plugins true in cli/config.json without wiping exis
   assert.equal(cfg.plugins.enabledPlugins['core@zcode-starterkit'], true)
   assert.equal(cfg.plugins.enabledPlugins['agents-config@zcode-starterkit'], true)
   assert.equal(cfg.plugins.enabledPlugins['mcp-tools@zcode-starterkit'], true)
+  assert.equal(cfg.plugins.enabledPlugins['hooks@zcode-starterkit'], true)
 })
 
 test('no file is written outside the sandbox home', () => {

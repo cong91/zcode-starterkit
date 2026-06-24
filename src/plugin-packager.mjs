@@ -5,6 +5,7 @@ import {
   CORE_PLUGIN_NAME,
   AGENTS_PLUGIN_NAME,
   MCP_TOOLS_PLUGIN_NAME,
+  HOOKS_PLUGIN_NAME,
   PLUGIN_VERSION,
 } from './constants.mjs'
 import { copyDirRecursive, ensureDir, exists, writeText } from './fs-utils.mjs'
@@ -80,16 +81,49 @@ export function packageBaselineAsPlugins({ zcodeHome, baselineRoot }) {
   const mcpDir = path.join(cacheRoot, MCP_TOOLS_PLUGIN_NAME, PLUGIN_VERSION)
   const mcpResult = packageMcpToolsPlugin({ mcpDir, baselineRoot })
 
+  // hooks: ZCode shell hooks porting OpenCode event-hook plugins (guard, rtk,
+  // prompt-leverage, session-summary) + memory auto-capture/inject via
+  // PreToolUse / PostToolUse / UserPromptSubmit / Stop hook events.
+  const hooksDir = path.join(cacheRoot, HOOKS_PLUGIN_NAME, PLUGIN_VERSION)
+  packageHooksPlugin({ hooksDir, baselineRoot })
+
   return {
     corePluginDir: coreDir,
     agentsPluginDir: agentsDir,
     mcpToolsPluginDir: mcpDir,
+    hooksPluginDir: hooksDir,
     coreName: CORE_PLUGIN_NAME,
     agentsName: AGENTS_PLUGIN_NAME,
     mcpToolsName: MCP_TOOLS_PLUGIN_NAME,
+    hooksName: HOOKS_PLUGIN_NAME,
     mcpServerName: mcpResult.serverName,
     version: PLUGIN_VERSION,
   }
+}
+
+// Package the hooks plugin: copy the hook scripts + hooks.json + plugin.json.
+// ZCode loads hooks.json from the plugin root and runs each command, passing
+// JSON on stdin and reading a JSON decision/context payload on stdout.
+function packageHooksPlugin({ hooksDir, baselineRoot }) {
+  ensureDir(hooksDir)
+  const srcHooksRoot = path.join(baselineRoot, 'hooks-plugin')
+  if (!exists(srcHooksRoot)) {
+    throw new Error(
+      `[zcode-starterkit] hooks-plugin source missing: ${srcHooksRoot}`,
+    )
+  }
+  // Copy hooks/ (scripts + hooks.json) and the plugin manifest.
+  copyDirRecursive(path.join(srcHooksRoot, 'hooks'), path.join(hooksDir, 'hooks'))
+  // Reuse the committed .zcode-plugin/plugin.json from source.
+  const srcPluginJson = path.join(srcHooksRoot, '.zcode-plugin', 'plugin.json')
+  if (exists(srcPluginJson)) {
+    writeText(path.join(hooksDir, '.zcode-plugin', 'plugin.json'), fs.readFileSync(srcPluginJson, 'utf8'))
+  } else {
+    writeText(path.join(hooksDir, '.zcode-plugin', 'plugin.json'),
+      `${JSON.stringify(pluginJson({ name: HOOKS_PLUGIN_NAME, description: 'ZCode shell hooks porting OpenCode event-hook plugins + memory auto-capture/inject.', withSkills: false, withCommands: false }), null, 2)}\n`)
+  }
+  writeText(path.join(hooksDir, '.zcode-plugin-seed.json'), `${JSON.stringify(seedJson({ name: HOOKS_PLUGIN_NAME }), null, 2)}\n`)
+  writeText(path.join(hooksDir, 'package.json'), `${JSON.stringify(pluginPackageJson({ name: HOOKS_PLUGIN_NAME }), null, 2)}\n`)
 }
 
 // Package the mcp-tools plugin: copy the prebuilt bundle + write plugin.json
@@ -140,6 +174,7 @@ export function registerMarketplace({ zcodeHome, packaged }) {
       { cachePath: packaged.corePluginDir, name: packaged.coreName, source: 'filesystem', version: packaged.version },
       { cachePath: packaged.agentsPluginDir, name: packaged.agentsName, source: 'filesystem', version: packaged.version },
       { cachePath: packaged.mcpToolsPluginDir, name: packaged.mcpToolsName, source: 'filesystem', version: packaged.version },
+      { cachePath: packaged.hooksPluginDir, name: packaged.hooksName, source: 'filesystem', version: packaged.version },
     ],
   }
   writeText(marketplacePath, `${JSON.stringify(body, null, 2)}\n`)
@@ -160,6 +195,7 @@ export function enablePlugins({ zcodeHome }) {
   cfg.plugins.enabledPlugins[`${CORE_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
   cfg.plugins.enabledPlugins[`${AGENTS_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
   cfg.plugins.enabledPlugins[`${MCP_TOOLS_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
+  cfg.plugins.enabledPlugins[`${HOOKS_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
   ensureDir(path.dirname(cliConfigPath))
   writeText(cliConfigPath, `${JSON.stringify(cfg, null, 2)}\n`)
   return { cliConfigPath, enabled: cfg.plugins.enabledPlugins }

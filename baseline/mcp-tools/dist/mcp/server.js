@@ -3225,8 +3225,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path5) {
-      let input = path5;
+    function removeDotSegments(path6) {
+      let input = path6;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3478,8 +3478,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path5, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path5 && path5 !== "/" ? path5 : void 0;
+        const [path6, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path6 && path6 !== "/" ? path6 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6872,12 +6872,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs3, exportName) {
+    function addFormats(ajv, list, fs4, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs3[f]);
+        ajv.addFormat(f, fs4[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -7081,10 +7081,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path5) {
-  if (!path5)
+function getElementAtPath(obj, path6) {
+  if (!path6)
     return obj;
-  return path5.reduce((acc, key) => acc?.[key], obj);
+  return path6.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -7404,11 +7404,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path5, issues) {
+function prefixIssues(path6, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path5);
+    iss.path.unshift(path6);
     return iss;
   });
 }
@@ -14110,13 +14110,13 @@ Examples:
   }
 };
 async function grepsearchExecute(args) {
-  const { query, language, repo, path: path5, limit = 10 } = args;
+  const { query, language, repo, path: path6, limit = 10 } = args;
   if (!query || query.trim() === "") return "Error: query is required";
   const url = new URL(GREP_APP_API);
   url.searchParams.set("q", query);
   if (language) url.searchParams.set("filter[lang][0]", language);
   if (repo) url.searchParams.set("filter[repo][0]", repo);
-  if (path5) url.searchParams.set("filter[path][0]", path5);
+  if (path6) url.searchParams.set("filter[path][0]", path6);
   try {
     const response = await fetch(url.toString(), {
       headers: { Accept: "application/json", "User-Agent": "ZCode-Starterkit/1.0" }
@@ -15318,6 +15318,162 @@ var srcwalkExecute = {
   srcwalk_impact: srcwalkImpactExecute
 };
 
+// src/tools/skill-mcp.ts
+import fs3 from "node:fs";
+import path5 from "node:path";
+import { spawn } from "node:child_process";
+function parseFrontmatter(content) {
+  const m = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!m) return { frontmatter: {}, body: content };
+  const fm = {};
+  for (const line of m[1].split("\n")) {
+    const mm = line.match(/^([\w-]+):\s*(.*)$/);
+    if (mm) {
+      let v = mm[2].trim();
+      if (v.startsWith("[")) {
+        try {
+          v = JSON.parse(v);
+        } catch {
+        }
+      }
+      fm[mm[1]] = v;
+    }
+  }
+  return { frontmatter: fm, body: m[2] };
+}
+function resolveSkillsDir() {
+  if (process.env.ZCODE_SKILLS_DIR) return process.env.ZCODE_SKILLS_DIR;
+  const cwd = process.env.ZCODE_PROJECT_DIR || process.cwd();
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  const pluginSkills = path5.join(home, ".zcode", "cli", "plugins", "cache", "zcode-starterkit", "core", "0.1.0", "skills");
+  if (fs3.existsSync(pluginSkills)) return pluginSkills;
+  return path5.join(cwd, "baseline", "skills");
+}
+var skillMcpListTool = {
+  name: "skill_mcp_list",
+  description: `Scan a skills directory for skills that declare an MCP server config in their SKILL.md frontmatter (mcp.server / mcp.command / mcpServers). Lists which skills carry ad-hoc MCP configs that skill_mcp_connect can spawn on demand.
+
+Example:
+skill_mcp_list({})`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      skills_dir: { type: "string", description: "Skills directory to scan (default: installed core plugin skills)" }
+    }
+  }
+};
+async function skillMcpListExecute(args) {
+  const dir = args.skills_dir ? path5.resolve(args.skills_dir) : resolveSkillsDir();
+  if (!fs3.existsSync(dir)) return `Skills directory not found: ${dir}`;
+  const results = [];
+  for (const entry of fs3.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const skillMd = path5.join(dir, entry.name, "SKILL.md");
+    if (!fs3.existsSync(skillMd)) continue;
+    const { frontmatter } = parseFrontmatter(fs3.readFileSync(skillMd, "utf8"));
+    const mcp = frontmatter.mcp || frontmatter.mcpServers;
+    if (mcp && typeof mcp === "object") results.push({ skill: entry.name, servers: mcp });
+  }
+  if (results.length === 0) return `No skills with MCP configs found under ${dir}.`;
+  const lines = [`Found ${results.length} skill(s) with MCP configs:`];
+  for (const r of results) {
+    lines.push(`- ${r.skill}: ${Object.keys(r.servers).join(", ")}`);
+    for (const [name, cfg] of Object.entries(r.servers)) {
+      lines.push(`    - ${name}: ${cfg.command} ${(cfg.args || []).join(" ")}`);
+    }
+  }
+  return lines.join("\n");
+}
+var skillMcpConnectTool = {
+  name: "skill_mcp_connect",
+  description: `Spawn an MCP server from a skill's frontmatter config (or an explicit command) over stdio, perform the MCP initialize + tools/list handshake, and return the available tool names. Use for on-demand, skill-scoped MCP servers not registered as native ZCode mcpServers.
+
+Example:
+skill_mcp_connect({ command: "npx", args: ["-y", "some-mcp-server"] })
+skill_mcp_connect({ skill: "playwright", server: "browser" })`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill: { type: "string", description: "Skill name (looks up its frontmatter MCP config)" },
+      server: { type: "string", description: "Server name within the skill config (if multiple)" },
+      command: { type: "string", description: "Explicit command to spawn (overrides skill lookup)" },
+      args: { type: "array", items: { type: "string" }, description: "Args for the explicit command" },
+      env: { type: "object", description: "Env vars for the spawned server" }
+    }
+  }
+};
+async function skillMcpConnectExecute(args) {
+  let command = args.command;
+  let cmdArgs = args.args || [];
+  let env = args.env || {};
+  if (!command && args.skill) {
+    const dir = resolveSkillsDir();
+    const skillMd = path5.join(dir, args.skill, "SKILL.md");
+    if (!fs3.existsSync(skillMd)) return `Skill not found: ${args.skill} (looked in ${dir})`;
+    const { frontmatter } = parseFrontmatter(fs3.readFileSync(skillMd, "utf8"));
+    const mcp = frontmatter.mcp || frontmatter.mcpServers;
+    if (!mcp) return `Skill ${args.skill} has no MCP config in its frontmatter.`;
+    const serverName = args.server || Object.keys(mcp)[0];
+    const cfg = mcp[serverName];
+    if (!cfg) return `Server "${serverName}" not found in skill ${args.skill}. Available: ${Object.keys(mcp).join(", ")}`;
+    command = cfg.command;
+    cmdArgs = cfg.args || [];
+    env = cfg.env || {};
+  }
+  if (!command) return "Either command or skill must be provided.";
+  return new Promise((resolve) => {
+    const child = spawn(command, cmdArgs, {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, ...env },
+      timeout: 3e4
+    });
+    let buffer = "";
+    let settled = false;
+    const finish = (out) => {
+      if (settled) return;
+      settled = true;
+      try {
+        child.kill();
+      } catch {
+      }
+      resolve(out);
+    };
+    const send = (obj) => child.stdin.write(JSON.stringify(obj) + "\n");
+    child.stdout.on("data", (chunk) => {
+      buffer += chunk.toString("utf8");
+      for (const line of buffer.split("\n")) {
+        if (!line.trim()) continue;
+        let msg;
+        try {
+          msg = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (msg.id === 1) {
+          send({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
+        } else if (msg.id === 2) {
+          const tools = (msg.result?.tools || []).map((t) => t.name);
+          finish(`Connected to MCP server "${command}". Available tools (${tools.length}):
+${tools.map((t) => `  - ${t}`).join("\n")}`);
+        }
+      }
+    });
+    child.stderr.on("data", () => {
+    });
+    child.on("error", (err) => finish(`Failed to spawn MCP server "${command}": ${err.message}`));
+    child.on("close", (code) => {
+      if (!settled) finish(`MCP server "${command}" exited with code ${code} before completing handshake.`);
+    });
+    send({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "zcode-starterkit-skill-mcp", version: "0.1.0" } } });
+    setTimeout(() => finish(`MCP handshake with "${command}" timed out after 30s.`), 3e4);
+  });
+}
+var skillMcpTools = [skillMcpListTool, skillMcpConnectTool];
+var skillMcpExecute = {
+  skill_mcp_list: skillMcpListExecute,
+  skill_mcp_connect: skillMcpConnectExecute
+};
+
 // src/server.ts
 var ALL_TOOLS = [
   context7Tool,
@@ -15325,7 +15481,8 @@ var ALL_TOOLS = [
   csearchTool,
   ...memoryTools,
   ...sessionsTools,
-  ...srcwalkTools
+  ...srcwalkTools,
+  ...skillMcpTools
 ];
 var EXECUTORS = {
   context7: context7Execute,
@@ -15333,7 +15490,8 @@ var EXECUTORS = {
   csearch: csearchExecute,
   ...memoryExecute,
   ...sessionsExecute,
-  ...srcwalkExecute
+  ...srcwalkExecute,
+  ...skillMcpExecute
 };
 var server = new Server(
   { name: "zcode-starterkit-tools", version: "0.1.0" },

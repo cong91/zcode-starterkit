@@ -78,6 +78,7 @@ function buildInstallLog({ cwd, zcodeHome, packaged, mergeResult }) {
     `[zcode-starterkit] corePluginDir=${packaged.corePluginDir}`,
     `[zcode-starterkit] agentsPluginDir=${packaged.agentsPluginDir}`,
     `[zcode-starterkit] mcpToolsPluginDir=${packaged.mcpToolsPluginDir}`,
+    `[zcode-starterkit] hooksPluginDir=${packaged.hooksPluginDir}`,
     mergeResult?.merged ? `[zcode-starterkit] merged config=${mergeResult.globalPath}` : `[zcode-starterkit] merge skipped=${mergeResult?.reason || 'unknown'}`,
     mergeResult?.manifestPath ? `[zcode-starterkit] merge manifest=${mergeResult.manifestPath}` : `[zcode-starterkit] merge manifest=none`,
   ].join('\n') + '\n'
