@@ -26,14 +26,23 @@ Three ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zco
 
 - **`core`** — 132 skills + 26 commands (ported verbatim from the OpenCode baseline).
 - **`agents-config`** — 9 agent definitions, merged into `~/.zcode/v2/config.json`.
-- **`mcp-tools`** — an MCP server (`@modelcontextprotocol/sdk`) porting OpenCode baseline tools as manual MCP tools:
+- **`mcp-tools`** — an MCP server (`@modelcontextprotocol/sdk`) porting OpenCode baseline tools as manual MCP tools (16 tools total):
   - `context7` — library documentation lookup
   - `grepsearch` — real-world code search via grep.app
   - `csearch` — multi-keyword codebase search with BM25 ranking (requires `rg`)
   - `observation`, `memory-search`, `memory-get`, `memory-read` — reduced project memory DB (SQLite, manual; no auto-capture)
   - `find_sessions`, `read_session` — ZCode session/task search
+  - `srcwalk_read`, `srcwalk_deps`, `srcwalk_map`, `srcwalk_callers`, `srcwalk_callees`, `srcwalk_flow`, `srcwalk_impact` — code intelligence/navigation (grep-based)
+  - `/structural-check` slash command (ported from `structural-check.sh`, adapted to the ZCode layout)
 
-  > Reduced port: ZCode has no OpenCode event bus (`message.part.updated` / `messages.transform`), so memory tools are called manually — auto-capture/inject is not available.
+  > Reduced port: ZCode has no OpenCode event bus (`message.part.updated` / `messages.transform` / `tool.execute.before` / `system.transform` / `session.compacting` / `auth.provider.loader`), so memory tools are called manually — auto-capture/inject is not available.
+
+  **6 OpenCode plugin files were NOT ported** (verified non-portable + user-approved drop):
+  - `copilot-auth.ts` — uses OpenCode `auth.provider.loader` (ZCode manages auth via `credentials.json`/`v2/config.json`).
+  - `prompt-leverage.ts` — uses `experimental.chat.messages.transform` (no equivalent in ZCode).
+  - `rtk.ts`, `guard.ts` — use `tool.execute.before` (no equivalent in ZCode; permission gating is app-level via `permission{}` config).
+  - `session-summary.ts` — uses `tool.execute.before` + `system.transform` + `session.compacting` (none exist in ZCode).
+  - `skill-mcp.ts` — duplicates ZCode's native `mcpServers` plugin mechanism.
 
 Config is additively merged into `~/.zcode/v2/config.json` (same `https://opencode.ai/config.json` schema). OpenCode-only `plugin[]` TS entries are stripped.
 

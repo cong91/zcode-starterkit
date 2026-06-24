@@ -3225,8 +3225,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path4) {
-      let input = path4;
+    function removeDotSegments(path5) {
+      let input = path5;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3478,8 +3478,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path4, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path4 && path4 !== "/" ? path4 : void 0;
+        const [path5, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path5 && path5 !== "/" ? path5 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -7081,10 +7081,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path4) {
-  if (!path4)
+function getElementAtPath(obj, path5) {
+  if (!path5)
     return obj;
-  return path4.reduce((acc, key) => acc?.[key], obj);
+  return path5.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -7404,11 +7404,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path4, issues) {
+function prefixIssues(path5, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path4);
+    iss.path.unshift(path5);
     return iss;
   });
 }
@@ -14110,13 +14110,13 @@ Examples:
   }
 };
 async function grepsearchExecute(args) {
-  const { query, language, repo, path: path4, limit = 10 } = args;
+  const { query, language, repo, path: path5, limit = 10 } = args;
   if (!query || query.trim() === "") return "Error: query is required";
   const url = new URL(GREP_APP_API);
   url.searchParams.set("q", query);
   if (language) url.searchParams.set("filter[lang][0]", language);
   if (repo) url.searchParams.set("filter[repo][0]", repo);
-  if (path4) url.searchParams.set("filter[path][0]", path4);
+  if (path5) url.searchParams.set("filter[path][0]", path5);
   try {
     const response = await fetch(url.toString(), {
       headers: { Accept: "application/json", "User-Agent": "ZCode-Starterkit/1.0" }
@@ -14903,20 +14903,437 @@ var sessionsExecute = {
   read_session: readSessionExecute
 };
 
+// src/tools/srcwalk.ts
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { existsSync as existsSync2, readFileSync as readFileSync2, statSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import path4 from "node:path";
+var TIMEOUT_MS = 15e3;
+var MAX_BUFFER = 5 * 1024 * 1024;
+function run2(cmd, args, cwd) {
+  try {
+    const result = execFileSync2(cmd, args, {
+      encoding: "utf-8",
+      timeout: TIMEOUT_MS,
+      maxBuffer: MAX_BUFFER,
+      cwd: cwd ?? process.cwd(),
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    return { stdout: result, stderr: "", code: 0 };
+  } catch (err) {
+    const e = err;
+    return { stdout: e.stdout ?? "", stderr: e.stderr ?? "", code: e.status ?? 1 };
+  }
+}
+function plural2(n, word) {
+  if (n === 1) return `${n} ${word}`;
+  if (["ch", "s", "sh", "x", "z"].some((s) => word.endsWith(s))) return `${n} ${word}es`;
+  if (word.endsWith("y") && word.length > 1 && !"aeiou".includes(word[word.length - 2])) return `${n} ${word.slice(0, -1)}ies`;
+  return `${n} ${word}s`;
+}
+function readFileRange(filePath, start, end, displayPath) {
+  try {
+    const content = readFileSync2(filePath, "utf-8");
+    const lines = content.split("\n");
+    const from = Math.max(0, start - 1);
+    const to = Math.min(lines.length, end);
+    const result = [`File: ${displayPath ?? filePath} (lines ${start}-${end}):
+`];
+    for (let i = from; i < to; i++) result.push(`${i + 1}: ${lines[i]}`);
+    return result.join("\n");
+  } catch (err) {
+    return `Error reading file: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+async function listDirRecursive(dir, prefix, maxDepth, output) {
+  if (maxDepth <= 0) return;
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    const skipDirs = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "build", "coverage", ".next"]);
+    const dirs = entries.filter((e) => e.isDirectory() && !skipDirs.has(e.name)).sort((a, b) => a.name.localeCompare(b.name));
+    const files = entries.filter((e) => e.isFile()).sort((a, b) => a.name.localeCompare(b.name));
+    for (const d of dirs) {
+      output.push(`${prefix}${d.name}/`);
+      await listDirRecursive(path4.join(dir, d.name), prefix + "  ", maxDepth - 1, output);
+    }
+    for (const f of files) {
+      const fp = path4.join(dir, f.name);
+      try {
+        const size = statSync(fp).size;
+        output.push(`${prefix}${f.name}  (~${Math.ceil(size / 4).toLocaleString()} tokens)`);
+      } catch {
+        output.push(`${prefix}${f.name}`);
+      }
+    }
+  } catch {
+  }
+}
+var TS_INCLUDES = ["--include=*.ts", "--include=*.tsx", "--include=*.js", "--include=*.jsx", "--include=*.mjs"];
+var srcwalkReadTool = {
+  name: "srcwalk_read",
+  description: `Read a file with optional section (line range, symbol, or path:line format). Small files return full content; large files support outlining. Use path:start-end for range reads (e.g. "src/app.ts:44-89").`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      path: { type: "string", description: "File path to read (supports path:line or path:start-end)" },
+      section: { type: "string", description: "Line range '44-89' or heading/symbol name" },
+      full: { type: "boolean", description: "Force full content" }
+    },
+    required: ["path"]
+  }
+};
+async function srcwalkReadExecute(args) {
+  const fileArg = String(args.path);
+  const cwd = process.cwd();
+  const fullFilePath = path4.resolve(cwd, fileArg);
+  const rangeMatch = fileArg.match(/^(.+?):(\d+)(?:-(\d+))?$/);
+  if (rangeMatch) {
+    const relPath = rangeMatch[1];
+    const resolved = path4.resolve(cwd, relPath);
+    const startLine = parseInt(rangeMatch[2], 10);
+    const endLine = rangeMatch[3] ? parseInt(rangeMatch[3], 10) : startLine;
+    return readFileRange(resolved, startLine, endLine, relPath);
+  }
+  if (!existsSync2(fullFilePath)) return `File not found: ${fileArg}`;
+  const stats = statSync(fullFilePath);
+  if (args.section) {
+    const section = String(args.section);
+    const lineMatch = section.match(/^(\d+)(?:-(\d+))?$/);
+    if (lineMatch) {
+      const start = parseInt(lineMatch[1], 10);
+      const end = lineMatch[2] ? parseInt(lineMatch[2], 10) : start + 30;
+      return readFileRange(fullFilePath, start, end);
+    }
+    const grepArgs = ["-n", "--color=never", "-E", `^(function |const |let |class |interface |type |export |## |### )?.*${section}`, fullFilePath];
+    const result = run2("grep", grepArgs);
+    if (result.stdout) {
+      const firstMatch = result.stdout.split("\n")[0];
+      const lineNum = parseInt(firstMatch.split(":")[0], 10);
+      if (!isNaN(lineNum)) return readFileRange(fullFilePath, Math.max(1, lineNum - 3), lineNum + 40);
+    }
+    return `Section "${section}" not found in ${fileArg}`;
+  }
+  if (stats.size < 50 * 1024 || args.full) {
+    const content2 = readFileSync2(fullFilePath, "utf-8");
+    const lines2 = content2.split("\n");
+    if (lines2.length > 2e3) return `[File too large: ${plural2(lines2.length, "line")}. Showing first 2000 lines]
+
+${lines2.slice(0, 2e3).join("\n")}`;
+    return content2;
+  }
+  const content = readFileSync2(fullFilePath, "utf-8");
+  const lines = content.split("\n");
+  const headings = [];
+  for (let i = 0; i < Math.min(lines.length, 5e3); i++) {
+    const l = lines[i].trim();
+    if (l.match(/^(export\s+)?(function|class|interface|type|const|enum|def|struct|impl|pub\s+fn)\s/) || l.match(/^(##|###)\s/) || l.match(/^\w+\s*[:=]/))
+      headings.push(`  ${i + 1}: ${l.slice(0, 120)}`);
+  }
+  const header = `[File: ${fileArg} \u2014 ${plural2(lines.length, "line")}, ${(stats.size / 1024).toFixed(1)}KB]
+
+`;
+  const outline = headings.length > 0 ? `Outline (${plural2(headings.length, "entry")}):
+${headings.slice(0, 50).join("\n")}
+
+Use path:line or section to read a specific range.` : `Use path:line to read a specific range (e.g., ${fileArg}:1-${Math.min(50, lines.length)}).`;
+  return header + outline;
+}
+var srcwalkDepsTool = {
+  name: "srcwalk_deps",
+  description: `Show what imports a file (dependents) and what a file imports (dependencies). Blast-radius check before breaking changes.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      path: { type: "string", description: "File path to analyze" },
+      scope: { type: "string", description: "Search scope (default: project root)" }
+    },
+    required: ["path"]
+  }
+};
+async function srcwalkDepsExecute(args) {
+  const filePath = String(args.path);
+  const cwd = process.cwd();
+  const absPath = path4.resolve(cwd, filePath);
+  if (!existsSync2(absPath)) return `File not found: ${filePath}`;
+  const scopeDir = path4.resolve(cwd, args.scope ? String(args.scope) : "");
+  const fileName = path4.basename(filePath, path4.extname(filePath));
+  const content = readFileSync2(absPath, "utf-8");
+  const importLines = [];
+  for (const line of content.split("\n")) {
+    const m = line.match(/(?:import|require)\s+.*?from\s+['"]([^'"]+)['"]|import\s+['"]([^'"]+)['"]/);
+    if (m) importLines.push(`  ${line.trim()}`);
+  }
+  const grepResult = run2("grep", ["-rn", "--color=never", "-E", `from ['"](\\./|\\.\\./|.*/)${fileName}['"]|require\\(['"](\\./|\\.\\./|.*/)${fileName}['"]`, scopeDir, ...TS_INCLUDES]);
+  const importers = grepResult.stdout.split("\n").filter(Boolean).slice(0, 30);
+  const result = [`## Dependencies for ${filePath}
+`, `### Imports (${plural2(importLines.length, "module")})`];
+  if (importLines.length === 0) result.push("  (none)");
+  else result.push(...importLines);
+  result.push(`
+### Importers (${plural2(importers.length, "file")})`);
+  if (importers.length === 0) result.push("  (no files import this module)");
+  else result.push(...importers.map((l) => `  ${path4.relative(cwd, l.split(":")[0])}:${l.split(":")[1]}`));
+  return result.join("\n");
+}
+var srcwalkMapTool = {
+  name: "srcwalk_map",
+  description: `Token-annotated directory skeleton. Shows repo structure with file sizes and token estimates. Good for understanding codebase shape.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      scope: { type: "string", description: "Directory to map (default: project root)" },
+      depth: { type: "number", description: "Max directory depth (default: 3)" }
+    }
+  }
+};
+async function srcwalkMapExecute(args) {
+  const cwd = process.cwd();
+  const scopeDir = path4.resolve(cwd, args.scope ? String(args.scope) : "");
+  const maxDepth = args.depth ?? 3;
+  const treeResult = run2("tree", ["-L", String(maxDepth), "--dirsfirst", "-I", ".git|node_modules|dist|build|coverage|.next", scopeDir]);
+  if (treeResult.code === 0) return treeResult.stdout.slice(0, 1e4);
+  const result = [`## Directory: ${path4.relative(cwd, scopeDir) || "."}
+`];
+  await listDirRecursive(scopeDir, "", maxDepth, result);
+  return result.join("\n");
+}
+var srcwalkCallersTool = {
+  name: "srcwalk_callers",
+  description: `Reverse call graph \u2014 find what calls a function. Grep-based: searches for symbol usage across the codebase. Use depth for transitive callers (multi-hop).`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      symbol: { type: "string", description: "Function/symbol name" },
+      scope: { type: "string", description: "Search scope" },
+      depth: { type: "number", description: "BFS hop depth (default: 1, max: 3)" },
+      filter: { type: "string", description: "Optional filter (e.g. path:api)" }
+    },
+    required: ["symbol"]
+  }
+};
+async function srcwalkCallersExecute(args) {
+  const symbol = String(args.symbol ?? "").trim();
+  if (!symbol) return "symbol is required.";
+  const cwd = process.cwd();
+  const scopeDir = path4.resolve(cwd, args.scope ? String(args.scope) : "");
+  const depth = Math.min(args.depth ?? 1, 3);
+  const grepArgs = ["-rn", "--color=never", "-E", `[.\\s]${symbol}\\s*\\(|[.]${symbol}\\b|\\b${symbol}\\.`, scopeDir, ...TS_INCLUDES];
+  if (args.filter) {
+    const filterStr = String(args.filter);
+    if (filterStr.startsWith("path:")) grepArgs.push(path4.join(scopeDir, filterStr.slice(5)));
+  }
+  const result = run2("grep", grepArgs);
+  const lines = result.stdout.split("\n").filter(Boolean).slice(0, 50);
+  if (lines.length === 0) return `No callers found for "${symbol}".`;
+  const output = [`## Callers of \`${symbol}\` (${plural2(lines.length, "result")})${depth > 1 ? ` (depth: ${depth})` : ""}
+`];
+  for (const line of lines) {
+    const parts = line.split(":");
+    if (parts.length >= 2) output.push(`  ${path4.relative(cwd, parts[0])}:${parts[1]}: ${parts.slice(2).join(":").trim().slice(0, 150)}`);
+    else output.push(`  ${line.slice(0, 200)}`);
+  }
+  if (depth > 1) output.push(`
+_Note: Multi-hop depth (${depth}) requires re-running on each caller._`);
+  return output.join("\n");
+}
+var srcwalkCalleesTool = {
+  name: "srcwalk_callees",
+  description: `Forward call graph \u2014 what does this function call? Reads the function body and extracts call sites.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      symbol: { type: "string", description: "Function/symbol name" },
+      scope: { type: "string", description: "Scope directory" },
+      detailed: { type: "boolean", description: "Show ordered call sites with argument slots" }
+    },
+    required: ["symbol"]
+  }
+};
+var KEYWORD_EXCLUDE = ["if", "for", "while", "switch", "catch", "typeof", "instanceof", "return", "throw", "new", "delete", "await", "yield"];
+async function srcwalkCalleesExecute(args) {
+  const symbol = String(args.symbol ?? "").trim();
+  if (!symbol) return "symbol is required.";
+  const cwd = process.cwd();
+  const scopeDir = path4.resolve(cwd, args.scope ? String(args.scope) : "");
+  const defResult = run2("grep", ["-rn", "--color=never", "-E", `(export\\s+)?(function|const|let|async\\s+function)\\s+${symbol}\\b|${symbol}\\s*[:=]\\s*(async\\s+)?\\(`, scopeDir, ...TS_INCLUDES]);
+  const defLines = defResult.stdout.split("\n").filter(Boolean).slice(0, 5);
+  if (defLines.length === 0) return `Definition not found for "${symbol}". Cannot trace callees without finding the function body.`;
+  const output = [`## Callees of \`${symbol}\`
+`];
+  for (const def of defLines) {
+    const parts = def.split(":");
+    if (parts.length < 2) continue;
+    const relPath = path4.relative(cwd, parts[0]);
+    const lineNum = parseInt(parts[1], 10);
+    output.push(`**Definition:** ${relPath}:${lineNum}`);
+    const filePath = path4.resolve(cwd, parts[0]);
+    if (existsSync2(filePath)) {
+      const fileLines = readFileSync2(filePath, "utf-8").split("\n");
+      let braceCount = 0, inFunc = false;
+      const calls = [];
+      for (let i = lineNum - 1; i < Math.min(lineNum + 80, fileLines.length); i++) {
+        const line = fileLines[i];
+        if (!inFunc) {
+          if (line.includes("{")) {
+            inFunc = true;
+            braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+          }
+          continue;
+        }
+        braceCount += (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+        for (const m of line.matchAll(/(?<![.\w])(\w+)\s*\(/g)) {
+          if (!KEYWORD_EXCLUDE.includes(m[1])) {
+            const argStart = line.indexOf("(", m.index);
+            const argEnd = line.indexOf(")", argStart);
+            const argStr = argEnd > argStart ? line.slice(argStart + 1, argEnd).trim().slice(0, 60) : "";
+            calls.push(`  ${args.detailed ? `${m[1]}(${argStr})` : `${m[1]}()`}`);
+          }
+        }
+        if (braceCount <= 0) break;
+      }
+      if (calls.length > 0) output.push(...calls);
+      else output.push("  (no internal calls found)");
+      output.push("");
+    }
+  }
+  return output.join("\n");
+}
+var srcwalkFlowTool = {
+  name: "srcwalk_flow",
+  description: `Compact function orientation \u2014 ordered callees + direct callers. Quick understanding of a function's role in the call graph.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      symbol: { type: "string", description: "Symbol name to analyze" },
+      scope: { type: "string", description: "Search scope" }
+    },
+    required: ["symbol"]
+  }
+};
+async function srcwalkFlowExecute(args) {
+  const symbol = String(args.symbol ?? "").trim();
+  if (!symbol) return "symbol is required.";
+  const cwd = process.cwd();
+  const scopeDir = path4.resolve(cwd, args.scope ? String(args.scope) : "");
+  const callersResult = run2("grep", ["-rn", "--color=never", "-E", `[.\\s]${symbol}\\s*\\(|[.]${symbol}\\b`, scopeDir, ...TS_INCLUDES]);
+  const callers = callersResult.stdout.split("\n").filter(Boolean).slice(0, 15);
+  const defResult = run2("grep", ["-rn", "--color=never", "-E", `(function|const|let)\\s+${symbol}\\b|${symbol}\\s*[:=]\\s*(async\\s+)?\\(`, scopeDir, ...TS_INCLUDES]);
+  const defLine = defResult.stdout.split("\n").filter(Boolean)[0];
+  let callees = [];
+  if (defLine) {
+    const parts = defLine.split(":");
+    if (parts.length >= 2) {
+      const fp = path4.resolve(cwd, parts[0]);
+      const ln = parseInt(parts[1], 10);
+      if (existsSync2(fp)) {
+        const fileLines = readFileSync2(fp, "utf-8").split("\n");
+        let bc = 0, inF = false;
+        for (let i = ln - 1; i < Math.min(ln + 60, fileLines.length); i++) {
+          const l = fileLines[i];
+          if (!inF) {
+            if (l.includes("{")) {
+              inF = true;
+              bc = (l.match(/{/g) || []).length - (l.match(/}/g) || []).length;
+            }
+            continue;
+          }
+          bc += (l.match(/{/g) || []).length - (l.match(/}/g) || []).length;
+          for (const m of l.matchAll(/(\w+)\s*\(/g)) if (!KEYWORD_EXCLUDE.includes(m[1])) callees.push(m[1]);
+          if (bc <= 0) break;
+        }
+      }
+    }
+  }
+  const output = [`## Flow: \`${symbol}\``, `
+**Callers (${plural2(callers.length, "file")}):`];
+  if (callers.length === 0) output.push("  (none)");
+  else output.push(...callers.slice(0, 10).map((l) => `  ${path4.relative(cwd, l.split(":")[0])}:${l.split(":")[1]}`));
+  output.push(`
+**Callees (${plural2(callees.length, "call")}):`);
+  if (callees.length === 0) output.push("  (none)");
+  else output.push(...[...new Set(callees)].slice(0, 20).map((c) => `  ${c}()`));
+  return output.join("\n");
+}
+var srcwalkImpactTool = {
+  name: "srcwalk_impact",
+  description: `Heuristic blast-radius triage \u2014 broad 'what might be affected?' starting point. Name-matched, not proof. Use as starting point before verifying with srcwalk_callers or exact reads.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      symbol: { type: "string", description: "Symbol name to triage" },
+      scope: { type: "string", description: "Search scope" }
+    },
+    required: ["symbol"]
+  }
+};
+async function srcwalkImpactExecute(args) {
+  const symbol = String(args.symbol ?? "").trim();
+  if (!symbol) return "symbol is required.";
+  const cwd = process.cwd();
+  const scopeDir = path4.resolve(cwd, args.scope ? String(args.scope) : "");
+  const grepResult = run2("grep", ["-rn", "--color=never", "-E", `\\b${symbol}\\b`, scopeDir, ...TS_INCLUDES]);
+  const lines = grepResult.stdout.split("\n").filter(Boolean);
+  const fileCounts = {};
+  for (const line of lines) {
+    const filePath = line.split(":")[0];
+    fileCounts[filePath] = (fileCounts[filePath] || 0) + 1;
+  }
+  const dirCounts = {};
+  for (const [filePath, count] of Object.entries(fileCounts)) {
+    const dir = path4.dirname(filePath);
+    if (!dirCounts[dir]) dirCounts[dir] = { files: 0, total: 0 };
+    dirCounts[dir].files++;
+    dirCounts[dir].total += count;
+  }
+  const totalOccurrences = lines.length;
+  const totalFiles = Object.keys(fileCounts).length;
+  const output = [`## Impact: \`${symbol}\``, `Total: ${plural2(totalOccurrences, "occurrence")} across ${plural2(totalFiles, "file")}
+`, `### By directory`];
+  const sortedDirs = Object.entries(dirCounts).sort((a, b) => b[1].total - a[1].total);
+  for (const [dir, info] of sortedDirs.slice(0, 15)) output.push(`  ${path4.relative(cwd, dir) || "."}/ \u2014 ${plural2(info.total, "occurrence")} in ${plural2(info.files, "file")}`);
+  const topFiles = Object.entries(fileCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  output.push(`
+### Top files`);
+  for (const [filePath, count] of topFiles) output.push(`  ${path4.relative(cwd, filePath)} (${plural2(count, "occurrence")})`);
+  output.push(`
+_Heuristic: name-matched, not proof. Follow up with srcwalk_callers for exact call sites._`);
+  return output.join("\n");
+}
+var srcwalkTools = [
+  srcwalkReadTool,
+  srcwalkDepsTool,
+  srcwalkMapTool,
+  srcwalkCallersTool,
+  srcwalkCalleesTool,
+  srcwalkFlowTool,
+  srcwalkImpactTool
+];
+var srcwalkExecute = {
+  srcwalk_read: srcwalkReadExecute,
+  srcwalk_deps: srcwalkDepsExecute,
+  srcwalk_map: srcwalkMapExecute,
+  srcwalk_callers: srcwalkCallersExecute,
+  srcwalk_callees: srcwalkCalleesExecute,
+  srcwalk_flow: srcwalkFlowExecute,
+  srcwalk_impact: srcwalkImpactExecute
+};
+
 // src/server.ts
 var ALL_TOOLS = [
   context7Tool,
   grepsearchTool,
   csearchTool,
   ...memoryTools,
-  ...sessionsTools
+  ...sessionsTools,
+  ...srcwalkTools
 ];
 var EXECUTORS = {
   context7: context7Execute,
   grepsearch: grepsearchExecute,
   csearch: csearchExecute,
   ...memoryExecute,
-  ...sessionsExecute
+  ...sessionsExecute,
+  ...srcwalkExecute
 };
 var server = new Server(
   { name: "zcode-starterkit-tools", version: "0.1.0" },

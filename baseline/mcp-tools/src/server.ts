@@ -17,6 +17,7 @@ import { grepsearchTool, grepsearchExecute } from './tools/grepsearch.js'
 import { csearchTool, csearchExecute } from './tools/csearch.js'
 import { memoryTools, memoryExecute } from './tools/memory.js'
 import { sessionsTools, sessionsExecute } from './tools/sessions.js'
+import { srcwalkTools, srcwalkExecute } from './tools/srcwalk.js'
 
 const ALL_TOOLS = [
   context7Tool,
@@ -24,6 +25,7 @@ const ALL_TOOLS = [
   csearchTool,
   ...memoryTools,
   ...sessionsTools,
+  ...srcwalkTools,
 ]
 
 const EXECUTORS: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {
@@ -32,6 +34,7 @@ const EXECUTORS: Record<string, (args: Record<string, unknown>) => Promise<unkno
   csearch: csearchExecute as (a: Record<string, unknown>) => Promise<unknown>,
   ...memoryExecute,
   ...sessionsExecute,
+  ...srcwalkExecute,
 }
 
 const server = new Server(
