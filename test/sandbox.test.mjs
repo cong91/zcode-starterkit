@@ -24,11 +24,18 @@ test('sandbox install produces plugins, marketplace, enabledPlugins, merged conf
 
   const mp = JSON.parse(fs.readFileSync(path.join(home, 'cli', 'plugins', 'marketplaces', 'zcode-starterkit', 'marketplace.json'), 'utf8'))
   assert.equal(mp.name, 'zcode-starterkit')
-  assert.equal(mp.plugins.length, 2)
+  assert.equal(mp.plugins.length, 3)
 
   const cli = JSON.parse(fs.readFileSync(path.join(home, 'cli', 'config.json'), 'utf8'))
   assert.equal(cli.plugins.enabledPlugins['core@zcode-starterkit'], true)
   assert.equal(cli.plugins.enabledPlugins['agents-config@zcode-starterkit'], true)
+  assert.equal(cli.plugins.enabledPlugins['mcp-tools@zcode-starterkit'], true)
+
+  // mcp-tools plugin ships a bundle + mcpServers declaration
+  const mcpDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'mcp-tools', '0.1.0')
+  assert.ok(fs.existsSync(path.join(mcpDir, 'dist', 'mcp', 'server.js')), 'mcp-tools bundle must be installed')
+  const mcpPluginJson = JSON.parse(fs.readFileSync(path.join(mcpDir, '.zcode-plugin', 'plugin.json'), 'utf8'))
+  assert.ok(mcpPluginJson.mcpServers, 'mcp-tools plugin.json must declare mcpServers')
 
   const cfg = JSON.parse(fs.readFileSync(path.join(home, 'v2', 'config.json'), 'utf8'))
   assert.equal(cfg.$schema, 'https://opencode.ai/config.json')

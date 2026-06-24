@@ -26,19 +26,32 @@ test('packageBaselineAsPlugins creates core + agents-config plugin dirs with plu
   assert.ok(fs.existsSync(path.join(result.agentsPluginDir, 'agents', 'build.md')))
 })
 
-test('registerMarketplace writes marketplace.json listing both plugins', () => {
+test('registerMarketplace writes marketplace.json listing all plugins', () => {
   const home = sandboxHome()
   const baselineRoot = path.resolve('baseline')
   const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot })
   const mp = registerMarketplace({ zcodeHome: home, packaged })
   const mpJson = JSON.parse(fs.readFileSync(mp.marketplacePath, 'utf8'))
   assert.equal(mpJson.name, 'zcode-starterkit')
-  assert.equal(mpJson.plugins.length, 2)
+  assert.equal(mpJson.plugins.length, 3)
   assert.ok(mpJson.plugins.some((p) => p.name === 'core'))
   assert.ok(mpJson.plugins.some((p) => p.name === 'agents-config'))
+  assert.ok(mpJson.plugins.some((p) => p.name === 'mcp-tools'))
 })
 
-test('enablePlugins sets both plugins true in cli/config.json without wiping existing', () => {
+test('mcp-tools plugin carries a bundle and an mcpServers entry', () => {
+  const home = sandboxHome()
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  const pluginJson = JSON.parse(fs.readFileSync(path.join(packaged.mcpToolsPluginDir, '.zcode-plugin', 'plugin.json'), 'utf8'))
+  assert.equal(pluginJson.name, 'mcp-tools')
+  assert.ok(pluginJson.mcpServers, 'mcpServers must be declared')
+  const serverName = Object.keys(pluginJson.mcpServers)[0]
+  assert.ok(serverName, 'mcpServers must have at least one entry')
+  assert.ok(fs.existsSync(path.join(packaged.mcpToolsPluginDir, 'dist', 'mcp', 'server.js')), 'bundle server.js must be copied')
+  assert.ok(fs.existsSync(path.join(packaged.mcpToolsPluginDir, '.mcp.json')), '.mcp.json must exist')
+})
+
+test('enablePlugins sets all plugins true in cli/config.json without wiping existing', () => {
   const home = sandboxHome()
   const cliConfigPath = path.join(home, 'cli', 'config.json')
   fs.mkdirSync(path.dirname(cliConfigPath), { recursive: true })
@@ -48,6 +61,7 @@ test('enablePlugins sets both plugins true in cli/config.json without wiping exi
   assert.equal(cfg.plugins.enabledPlugins['superpowers@zcode-plugins-official'], true)
   assert.equal(cfg.plugins.enabledPlugins['core@zcode-starterkit'], true)
   assert.equal(cfg.plugins.enabledPlugins['agents-config@zcode-starterkit'], true)
+  assert.equal(cfg.plugins.enabledPlugins['mcp-tools@zcode-starterkit'], true)
 })
 
 test('no file is written outside the sandbox home', () => {

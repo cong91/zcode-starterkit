@@ -4,6 +4,7 @@ import {
   MARKETPLACE_NAME,
   CORE_PLUGIN_NAME,
   AGENTS_PLUGIN_NAME,
+  MCP_TOOLS_PLUGIN_NAME,
   PLUGIN_VERSION,
 } from './constants.mjs'
 import { copyDirRecursive, ensureDir, exists, writeText } from './fs-utils.mjs'
@@ -66,13 +67,58 @@ export function packageBaselineAsPlugins({ zcodeHome, baselineRoot }) {
   writeText(path.join(agentsDir, '.zcode-plugin-seed.json'), `${JSON.stringify(seedJson({ name: AGENTS_PLUGIN_NAME }), null, 2)}\n`)
   writeText(path.join(agentsDir, 'package.json'), `${JSON.stringify(pluginPackageJson({ name: AGENTS_PLUGIN_NAME }), null, 2)}\n`)
 
+  // mcp-tools: MCP server porting OpenCode baseline tools (context7, grepsearch,
+  // csearch, memory, sessions). Reduced: manual tool calls, no auto-capture.
+  const mcpDir = path.join(cacheRoot, MCP_TOOLS_PLUGIN_NAME, PLUGIN_VERSION)
+  const mcpResult = packageMcpToolsPlugin({ mcpDir, baselineRoot })
+
   return {
     corePluginDir: coreDir,
     agentsPluginDir: agentsDir,
+    mcpToolsPluginDir: mcpDir,
     coreName: CORE_PLUGIN_NAME,
     agentsName: AGENTS_PLUGIN_NAME,
+    mcpToolsName: MCP_TOOLS_PLUGIN_NAME,
+    mcpServerName: mcpResult.serverName,
     version: PLUGIN_VERSION,
   }
+}
+
+// Package the mcp-tools plugin: copy the prebuilt bundle + write plugin.json
+// with an mcpServers entry pointing at the cached server.js.
+function packageMcpToolsPlugin({ mcpDir, baselineRoot }) {
+  const serverName = 'zcode-starterkit-tools'
+  ensureDir(mcpDir)
+  const srcServer = path.join(baselineRoot, 'mcp-tools', 'dist', 'mcp', 'server.js')
+  if (!exists(srcServer)) {
+    throw new Error(
+      `[zcode-starterkit] mcp-tools bundle missing: ${srcServer}\n` +
+      `Build it first: cd baseline/mcp-tools && npm install && npm run build`,
+    )
+  }
+  ensureDir(path.join(mcpDir, 'dist', 'mcp'))
+  fs.copyFileSync(srcServer, path.join(mcpDir, 'dist', 'mcp', 'server.js'))
+
+  const pluginJsonObj = {
+    name: MCP_TOOLS_PLUGIN_NAME,
+    version: PLUGIN_VERSION,
+    description: 'MCP server porting OpenCode baseline tools (context7, grepsearch, csearch, memory, sessions) for ZCode Agent. Reduced: manual tool calls, no auto-capture/inject.',
+    author: { name: 'zcode-starterkit' },
+    license: 'MIT',
+    mcpServers: {
+      [serverName]: {
+        command: 'node',
+        args: ['${CLAUDE_PLUGIN_ROOT}/dist/mcp/server.js'],
+        cwd: '${CLAUDE_PROJECT_DIR}',
+      },
+    },
+  }
+  writeText(path.join(mcpDir, '.zcode-plugin', 'plugin.json'), `${JSON.stringify(pluginJsonObj, null, 2)}\n`)
+  writeText(path.join(mcpDir, '.zcode-plugin-seed.json'), `${JSON.stringify(seedJson({ name: MCP_TOOLS_PLUGIN_NAME }), null, 2)}\n`)
+  writeText(path.join(mcpDir, 'package.json'), `${JSON.stringify(pluginPackageJson({ name: MCP_TOOLS_PLUGIN_NAME }), null, 2)}\n`)
+  // Claude-compatible .mcp.json at plugin root (some hosts read this too).
+  writeText(path.join(mcpDir, '.mcp.json'), `${JSON.stringify({ mcpServers: pluginJsonObj.mcpServers }, null, 2)}\n`)
+  return { serverName }
 }
 
 export function registerMarketplace({ zcodeHome, packaged }) {
@@ -85,6 +131,7 @@ export function registerMarketplace({ zcodeHome, packaged }) {
     plugins: [
       { cachePath: packaged.corePluginDir, name: packaged.coreName, source: 'filesystem', version: packaged.version },
       { cachePath: packaged.agentsPluginDir, name: packaged.agentsName, source: 'filesystem', version: packaged.version },
+      { cachePath: packaged.mcpToolsPluginDir, name: packaged.mcpToolsName, source: 'filesystem', version: packaged.version },
     ],
   }
   writeText(marketplacePath, `${JSON.stringify(body, null, 2)}\n`)
@@ -104,6 +151,7 @@ export function enablePlugins({ zcodeHome }) {
   cfg.plugins.enabledPlugins = cfg.plugins.enabledPlugins || {}
   cfg.plugins.enabledPlugins[`${CORE_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
   cfg.plugins.enabledPlugins[`${AGENTS_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
+  cfg.plugins.enabledPlugins[`${MCP_TOOLS_PLUGIN_NAME}@${MARKETPLACE_NAME}`] = true
   ensureDir(path.dirname(cliConfigPath))
   writeText(cliConfigPath, `${JSON.stringify(cfg, null, 2)}\n`)
   return { cliConfigPath, enabled: cfg.plugins.enabledPlugins }

@@ -23,6 +23,7 @@ export const ZCODE_HOME = resolveZcodeHome()
 export const MARKETPLACE_NAME = 'zcode-starterkit'
 export const CORE_PLUGIN_NAME = 'core'
 export const AGENTS_PLUGIN_NAME = 'agents-config'
+export const MCP_TOOLS_PLUGIN_NAME = 'mcp-tools'
 export const PLUGIN_VERSION = '0.1.0'
 
 // ZCode layout under ZCODE_HOME
@@ -34,6 +35,7 @@ export const ZCODE_RUNTIME_CONFIG = path.join(ZCODE_HOME, 'v2', 'config.json')
 
 export const ZCODE_CORE_PLUGIN_DIR = path.join(ZCODE_CACHE_ROOT, CORE_PLUGIN_NAME, PLUGIN_VERSION)
 export const ZCODE_AGENTS_PLUGIN_DIR = path.join(ZCODE_CACHE_ROOT, AGENTS_PLUGIN_NAME, PLUGIN_VERSION)
+export const ZCODE_MCP_TOOLS_PLUGIN_DIR = path.join(ZCODE_CACHE_ROOT, MCP_TOOLS_PLUGIN_NAME, PLUGIN_VERSION)
 
 // Vendor copy of the whole starterkit package source (for shim resolution + docs)
 export const ZCODE_VENDOR_ROOT = ZCODE_CACHE_ROOT

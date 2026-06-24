@@ -1,0 +1,25 @@
+{
+  "name": "@zcode-starterkit/mcp-tools-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "ZCode MCP server porting OpenCode baseline tools (context7, grepsearch, csearch, memory, sessions). Reduced: manual tool calls via MCP, no auto-capture/inject (ZCode has no OpenCode event bus).",
+  "main": "./dist/mcp/server.js",
+  "bin": {
+    "zcode-starterkit-mcp": "./dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  }
+}
