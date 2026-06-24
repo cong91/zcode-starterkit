@@ -6,7 +6,7 @@ import {
   ZCODE_HOME,
   GLOBAL_BIN_DIR,
 } from './constants.mjs'
-import { backupIfExists, ensureDir, exists, writeText, shouldCopyStarterkitPath } from './fs-utils.mjs'
+import { backupIfExists, ensureDir, exists, writeText } from './fs-utils.mjs'
 import { readJson, writeJson, writeMergeManifest, mergeZcodeConfigAdditive, normalizeZcodeConfig } from './config-merge.mjs'
 import { packageBaselineAsPlugins, registerMarketplace, enablePlugins } from './plugin-packager.mjs'
 
@@ -69,25 +69,6 @@ function mergeGlobalConfig({ zcodeHome, stateRoot }) {
   return { merged: true, globalPath, manifestPath, normalizedChanges: normalized.changes, providerNames: normalized.providerNames }
 }
 
-function vendorPackageSource({ zcodeHome }) {
-  const vendorRoot = path.join(zcodeHome, 'cli', 'plugins', 'cache', 'zcode-starterkit')
-  const backupDir = path.join(zcodeHome, 'cli', 'starterkit-state', 'backups')
-  backupIfExists(vendorRoot, { backupRoot: backupDir })
-  ensureDir(vendorRoot)
-  fs.cpSync(ZCODE_STARTERKIT_PACKAGE_ROOT, vendorRoot, {
-    recursive: true,
-    force: true,
-    filter: (src) => {
-      const rel = path.relative(ZCODE_STARTERKIT_PACKAGE_ROOT, src)
-      if (!rel) return true
-      if (rel.split(path.sep).includes('.git')) return false
-      if (rel.split(path.sep).includes('node_modules')) return false
-      if (rel.split(path.sep).includes('.sandbox')) return false
-      return shouldCopyStarterkitPath(src, ZCODE_STARTERKIT_PACKAGE_ROOT)
-    },
-  })
-}
-
 function buildInstallLog({ cwd, zcodeHome, packaged, mergeResult }) {
   return [
     `[zcode-starterkit] install started: ${new Date().toISOString()}`,
@@ -113,7 +94,11 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
   ensureDir(path.join(stateRoot, 'logs'))
   ensureDir(path.join(stateRoot, 'manifests'))
 
-  vendorPackageSource({ zcodeHome })
+  // Package the portable baseline (config + agents + commands + skills + memory)
+  // into two ZCode plugins under the cache root. We intentionally do NOT vendor
+  // the whole starterkit package source: the plugins already carry everything
+  // ZCode loads, and vendoring the source would recurse when --sandbox places
+  // the cache root inside the repo itself.
   const packaged = packageBaselineAsPlugins({ zcodeHome, baselineRoot: ZCODE_STARTERKIT_BASELINE_ROOT })
   registerMarketplace({ zcodeHome, packaged })
   enablePlugins({ zcodeHome })
