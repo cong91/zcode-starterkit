@@ -55,6 +55,7 @@ function mergeGlobalConfig({ zcodeHome, stateRoot }) {
   const normalized = normalizeZcodeConfig({ current, baseline, merged })
   const backupDir = path.join(stateRoot, 'backups')
   backupIfExists(globalPath, { backupRoot: backupDir })
+  ensureDir(path.dirname(globalPath)) // ensure ~/.zcode/v2 exists before writing config
   writeJson(globalPath, normalized.config)
   const manifestPath = writeMergeManifest({
     targetPath: globalPath,
@@ -100,7 +101,7 @@ function buildInstallLog({ cwd, zcodeHome, packaged, mergeResult }) {
   ].join('\n') + '\n'
 }
 
-export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME } = {}) {
+export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = false } = {}) {
   console.log('[zcode-starterkit] Global install starting')
   console.log(`cwd=${cwd}`)
   console.log(`zcodeHome=${zcodeHome}`)
@@ -117,7 +118,9 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME } = {}) {
   registerMarketplace({ zcodeHome, packaged })
   enablePlugins({ zcodeHome })
   const mergeResult = mergeGlobalConfig({ zcodeHome, stateRoot })
-  const installedShimPaths = installCliShims()
+  // Shims install into the real ~/.local/bin (GLOBAL_BIN_DIR uses the real HOME).
+  // Skip them in sandbox mode so a test run never touches the live filesystem.
+  const installedShimPaths = skipShims ? [] : installCliShims()
 
   const logDir = path.join(stateRoot, 'logs')
   const installLogPath = path.join(logDir, `install-${new Date().toISOString().replace(/[:.]/g, '-')}.log`)

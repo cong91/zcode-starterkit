@@ -15,11 +15,13 @@ async function main() {
   if (command !== 'install') { printHelp('zcode-starterkit'); process.exit(1) }
 
   let zcodeHome = resolveZcodeHome()
+  let skipShims = false
   if (cli.sandbox) {
     zcodeHome = path.join(PACKAGE_ROOT, '.sandbox', '.zcode')
+    skipShims = true
   }
 
-  await installGlobal({ cwd: process.cwd(), zcodeHome })
+  await installGlobal({ cwd: process.cwd(), zcodeHome, skipShims })
   process.exit(0)
 }
 
