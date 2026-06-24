@@ -55,6 +55,14 @@ export function packageBaselineAsPlugins({ zcodeHome, baselineRoot }) {
   // core: skills + commands
   copyDirRecursive(path.join(baselineRoot, 'skills'), path.join(coreDir, 'skills'))
   copyDirRecursive(path.join(baselineRoot, 'commands'), path.join(coreDir, 'commands'))
+  // Portable content dirs from the OpenCode baseline — bundled with the core
+  // plugin so the ZCode agent can reach templates/workflows/plans/artifacts/
+  // dcp-prompts without a separate install. (Plugin.json only declares skills
+  // + commands as loadable surfaces; these dirs are reference assets the agent
+  // reads via the filesystem / srcwalk_read.)
+  for (const dir of ['templates', 'workflows', 'plans', 'artifacts', 'dcp-prompts']) {
+    copyDirRecursive(path.join(baselineRoot, dir), path.join(coreDir, dir))
+  }
   writeText(path.join(coreDir, '.zcode-plugin', 'plugin.json'),
     `${JSON.stringify(pluginJson({ name: CORE_PLUGIN_NAME, description: 'Shared skills and commands for ZCode Agent.', withSkills: true, withCommands: true }), null, 2)}\n`)
   writeText(path.join(coreDir, '.zcode-plugin-seed.json'), `${JSON.stringify(seedJson({ name: CORE_PLUGIN_NAME }), null, 2)}\n`)

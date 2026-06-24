@@ -46,6 +46,13 @@ Three ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zco
 
 Config is additively merged into `~/.zcode/v2/config.json` (same `https://opencode.ai/config.json` schema). OpenCode-only `plugin[]` TS entries are stripped.
 
+The **core** plugin also bundles these portable content dirs from the OpenCode baseline (reference assets the agent reads via filesystem / `srcwalk_read`): `templates/` (adr, design, prd, project, proposal, roadmap, state, tasks, tech-stack, user), `workflows/`, `plans/`, `artifacts/`, `dcp-prompts/`.
+
+**OpenCode-specific config files NOT carried** (no ZCode equivalent):
+- `dcp.jsonc` — OpenCode DCP (Dynamic Context Pruning) plugin config; ZCode has no DCP.
+- `opencodex-fast.jsonc`, `tui.json` — OpenCode TUI/plugin config; ZCode uses an Electron UI.
+- `baseline/package.json` / `tsconfig.json` — OpenCode TS plugin build files (the ZCode MCP plugin has its own `baseline/mcp-tools/package.json`).
+
 ## Rebuilding the MCP bundle (developers)
 
 The `mcp-tools` plugin ships a prebuilt `dist/mcp/server.js`. To rebuild after editing `baseline/mcp-tools/src/**/*.ts`:
