@@ -28,24 +28,24 @@ Extract:
 
 ## Phase 2: Read Existing Quality Grades
 
-Read `.opencode/QUALITY.md` if it exists. Compare with current Fallow findings.
+Read `.zcode/QUALITY.md` if it exists. Compare with current Fallow findings.
 
 ## Phase 3: Grade Each Domain
 
 Run the structural check:
 
 ```bash
-.opencode/tool/structural-check.sh
+.zcode/tool/structural-check.sh
 ```
 
-Update `.opencode/QUALITY.md` with grades per domain:
+Update `.zcode/QUALITY.md` with grades per domain:
 
 | Domain | Source | Grade |
 |---|---|---|
-| Plugins | `.opencode/plugin/*.ts` | A–D |
-| Commands | `.opencode/command/*.md` | A–D |
-| Skills | `.opencode/skill/` | A–D |
-| Docs | `.opencode/context/*.md` | A–D |
+| Plugins | `.zcode/plugin/*.ts` | A–D |
+| Commands | `.zcode/command/*.md` | A–D |
+| Skills | `.zcode/skill/` | A–D |
+| Docs | `.zcode/context/*.md` | A–D |
 
 ## Phase 4: Open Cleanup PRs (if findings warrant)
 

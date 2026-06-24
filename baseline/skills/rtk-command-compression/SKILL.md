@@ -18,7 +18,7 @@ Core rule: **opt in explicitly, verify rewrites, preserve raw evidence when corr
 
 - User asks to install, enable, test, tune, or troubleshoot RTK in OpenCode.
 - Bash output is consuming too much context from shell-heavy workflows.
-- You need to document or validate RTK wiring in a project where `~/.config/opencode` may be symlinked to `.opencode`.
+- You need to document or validate RTK wiring in a project where `~/.zcode` may be symlinked to `.zcode`.
 
 ## When NOT to Use
 
@@ -31,12 +31,12 @@ Core rule: **opt in explicitly, verify rewrites, preserve raw evidence when corr
 This template supports RTK as optional user-local wiring:
 
 - RTK binary: `~/.local/bin/rtk` after opt-in install.
-- Active OpenCode plugin path in this symlinked setup: `.opencode/plugin/rtk.ts`.
+- Active ZCode hook path in this symlinked setup: `hooks-plugin/hooks/rtk.mjs (ZCode PreToolUse hook)`.
 - RTK config path on macOS: `~/Library/Application Support/rtk/config.toml`.
 - Keep telemetry disabled unless the user explicitly opts in.
 - Keep tee mode on `failures` so raw output can be recovered when commands fail.
 
-If `~/.config/opencode` is symlinked to this repo's `.opencode`, OpenCode may resolve the same plugin as both global and project config. The RTK plugin must be idempotent: skip commands already starting with `rtk`.
+If `~/.zcode` is symlinked to this repo's `.zcode`, ZCode may load the same hook as both global and project config. The RTK plugin must be idempotent: skip commands already starting with `rtk`.
 
 ## Install / Enable Checklist
 
@@ -46,14 +46,14 @@ Ask before installing or changing global config. Then run:
 command -v rtk || RTK_INSTALL_DIR="$HOME/.local/bin" sh /tmp/rtk-research/install.sh
 rtk --version
 rtk gain
-RTK_TELEMETRY_DISABLED=1 rtk init -g --opencode --hook-only
+RTK_TELEMETRY_DISABLED=1 rtk init -g --zcodely
 RTK_TELEMETRY_DISABLED=1 rtk config --create
 ```
 
 Verify OpenCode sees the plugin:
 
 ```bash
-opencode debug config | grep -i 'rtk\|plugin' -C 2
+zcode config show | grep -i 'rtk\|plugin' -C 2
 ```
 
 Verify RTK itself:
@@ -63,7 +63,7 @@ RTK_TELEMETRY_DISABLED=1 rtk telemetry status
 rtk verify
 ```
 
-`rtk verify` may say a Claude hook is not installed; that is expected when only the OpenCode plugin is enabled. The important checks are the OpenCode plugin path, telemetry status, and RTK test count.
+`rtk verify` may say a Claude hook is not installed; that is expected when only the OpenCode plugin is enabled. The important checks are the ZCode hook path, telemetry status, and RTK test count.
 
 ## Required Safety Settings
 
@@ -121,14 +121,14 @@ Expected evidence:
 
 | Symptom                          | Check                                           | Fix                                                                     |
 | -------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
-| No rewrites                      | `opencode debug config`                         | Restart OpenCode and confirm `.opencode/plugin/rtk.ts` is loaded.       |
-| Recursive `rtk rtk ...` behavior | Inspect `.opencode/plugin/rtk.ts`               | Add/restore idempotency guard for commands already starting with `rtk`. |
+| No rewrites                      | `zcode config show`                         | Restart ZCode and confirm `hooks-plugin/hooks/rtk.mjs (ZCode PreToolUse hook)` is loaded.       |
+| Recursive `rtk rtk ...` behavior | Inspect `hooks-plugin/hooks/rtk.mjs (ZCode PreToolUse hook)`               | Add/restore idempotency guard for commands already starting with `rtk`. |
 | Command semantics changed        | `rtk rewrite '<command>'`                       | Add the command prefix to `[hooks].exclude_commands`.                   |
 | Need raw failed output           | Check RTK tee files/config                      | Keep `[tee] mode = "failures"`; rerun raw if needed.                    |
 | Telemetry concern                | `RTK_TELEMETRY_DISABLED=1 rtk telemetry status` | Keep telemetry disabled unless user opts in.                            |
 
 ## Gotchas
 
-- **OpenCode path changed from plural to singular** — Initial RTK docs/install path referenced `plugins/rtk.ts`, but active OpenCodeKit loading after restart used `.opencode/plugin/rtk.ts`. Document and inspect the active path, not just installer output.
-- **Symlinked global/project config can double-load plugin paths** — When `~/.config/opencode` points at this repo's `.opencode`, OpenCode can resolve global and project plugin URLs. The plugin must skip commands already starting with `rtk`.
+- **OpenCode path changed from plural to singular** — Initial RTK docs/install path referenced `plugins/rtk.ts`, but active OpenCodeKit loading after restart used `hooks-plugin/hooks/rtk.mjs (ZCode PreToolUse hook)`. Document and inspect the active path, not just installer output.
+- **Symlinked global/project config can double-load plugin paths** — When `~/.zcode` points at this repo's `.zcode`, OpenCode can resolve global and project plugin URLs. The plugin must skip commands already starting with `rtk`.
 - **Unsafe rewrites were observed** — `find` compound predicates and `npx oxlint` were rewritten incorrectly during testing. Keep them excluded unless RTK behavior changes and is re-verified.

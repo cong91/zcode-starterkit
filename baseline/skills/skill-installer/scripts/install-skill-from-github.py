@@ -43,8 +43,8 @@ class InstallError(Exception):
     pass
 
 
-def _opencode_home() -> str:
-    return os.environ.get("OPENCODE_HOME", os.path.expanduser("~/.config/opencode"))
+def _zcode_home() -> str:
+    return os.environ.get("OPENCODE_HOME", os.path.expanduser("~/.zcode"))
 
 
 def _tmp_root() -> str:
@@ -54,7 +54,7 @@ def _tmp_root() -> str:
 
 
 def _request(url: str) -> bytes:
-    return github_request(url, "opencode-skill-install")
+    return github_request(url, "zcode-skill-install")
 
 
 def _parse_github_url(url: str, default_ref: str) -> tuple[str, str, str, str | None]:
@@ -246,7 +246,7 @@ def _resolve_source(args: Args) -> Source:
 
 
 def _default_dest() -> str:
-    return os.path.join(_opencode_home(), "skill")
+    return os.path.join(_zcode_home(), "skill")
 
 
 def _parse_args(argv: list[str]) -> Args:

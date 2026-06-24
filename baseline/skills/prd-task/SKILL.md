@@ -25,7 +25,7 @@ dependencies: [prd]
 
 ## Beads-Native File Locations (Recommended)
 
-This template uses Beads artifacts (no `.opencode/state`).
+This template uses Beads artifacts (no `.zcode/state`).
 
 ```
 .beads/artifacts/<bead-id>/

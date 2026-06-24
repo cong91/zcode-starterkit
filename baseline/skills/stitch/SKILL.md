@@ -69,7 +69,7 @@ export STITCH_ACCESS_TOKEN=$(gcloud auth print-access-token)
 
 ### 4. Configuration
 
-Stitch MCP is pre-configured in `opencode.json` as a default MCP server. Once environment variables are set, restart OpenCode and the tools will be available.
+Stitch MCP is pre-configured in `config.json` as a default MCP server. Once environment variables are set, restart OpenCode and the tools will be available.
 
 ## Available Tools
 

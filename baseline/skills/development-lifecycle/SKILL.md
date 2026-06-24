@@ -83,7 +83,7 @@ This skill orchestrates the complete feature development workflow, guiding you t
 - Design validated by user
 - Output: `.beads/artifacts/<bead-id>/design.md`
 
-**Template:** `.opencode/memory/_templates/design.md`
+**Template:** `.zcode/memory/_templates/design.md`
 
 ---
 
@@ -111,7 +111,7 @@ This skill orchestrates the complete feature development workflow, guiding you t
 - PRD with all sections completed
 - Output: `.beads/artifacts/<bead-id>/prd.md`
 
-**Template:** `.opencode/memory/_templates/prd.md`
+**Template:** `.zcode/memory/_templates/prd.md`
 
 ---
 
@@ -165,7 +165,7 @@ This skill orchestrates the complete feature development workflow, guiding you t
 - Detailed plan ready for execution
 - Output: `.beads/artifacts/<bead-id>/plan.md`
 
-**Template:** `.opencode/memory/_templates/tasks.md` (for task structure reference)
+**Template:** `.zcode/memory/_templates/tasks.md` (for task structure reference)
 
 ---
 

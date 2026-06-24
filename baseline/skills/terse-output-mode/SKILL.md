@@ -80,7 +80,7 @@ No commit made.
 
 - This skill is output style only.
 - It does not replace `rtk-command-compression`; RTK handles shell/tool output compression.
-- It does not replace DCP/context compression; DCP handles conversation compression.
+- It does not replace ZCode compaction/context compression; ZCode compaction handles conversation compression.
 - It does not install hooks, plugins, binaries, or dependencies.
 - It does not rewrite memory files or project documentation unless explicitly asked.
 

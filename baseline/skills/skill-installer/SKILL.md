@@ -23,7 +23,7 @@ Import skills from GitHub into OpenCode-compatible skill directories.
 
 ## Default Destination
 
-- Global OpenCode skill directory: `~/.config/opencode/skill`
+- Global OpenCode skill directory: `~/.zcode/skill`
 - Override destination with `--dest <path>`
 
 ## Scripts
@@ -37,18 +37,18 @@ Import skills from GitHub into OpenCode-compatible skill directories.
 
 ```bash
 # List curated skills from openai/skills
-python3 .opencode/skill/skill-installer/scripts/list-skills.py
+python3 .zcode/skill/skill-installer/scripts/list-skills.py
 
-# Install one curated skill into ~/.config/opencode/skill
-python3 .opencode/skill/skill-installer/scripts/install-skill-from-github.py \
+# Install one curated skill into ~/.zcode/skill
+python3 .zcode/skill/skill-installer/scripts/install-skill-from-github.py \
   --repo openai/skills \
   --path skills/.curated/screenshot
 
 # Install into project-local skills directory
-python3 .opencode/skill/skill-installer/scripts/install-skill-from-github.py \
+python3 .zcode/skill/skill-installer/scripts/install-skill-from-github.py \
   --repo openai/skills \
   --path skills/.curated/gh-fix-ci \
-  --dest .opencode/skill
+  --dest .zcode/skill
 ```
 
 ## Notes

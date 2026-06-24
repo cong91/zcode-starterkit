@@ -51,7 +51,7 @@ Pay attention to these signals:
 
 ### Strategy 1: Phase Compression (Preferred)
 
-Compress completed conversation phases into dense summaries. This is the primary DCP instrument in the installed beta.
+Compress completed conversation phases into dense summaries. This is the primary ZCode compaction mechanism in the installed beta.
 
 
 Compress completed conversation phases into dense summaries.
@@ -72,11 +72,11 @@ DO: compress({
 
 ### Strategy 2: Sweep Stale Noise
 
-Use `/dcp sweep` after a phase is complete to remove stale/noisy content automatically.
+Use ZCode session compaction (`compactSession`) after a phase is complete to remove stale/noisy content automatically.
 
 ```
 WHEN: Wrong-target searches or superseded outputs are no longer needed
-DO: /dcp sweep
+DO: trigger ZCode session compaction
 ```
 
 **Key principle**: Sweep only after the relevant phase is closed. If in doubt, keep it.
@@ -253,19 +253,19 @@ memory - read({ file: "handoffs/YYYY-MM-DD-feature-name" });
 memory - search({ query: "auth implementation" });
 ```
 
-## Integration with DCP Plugin
+## Integration with ZCode Compaction
 
-This project uses `@tarquinen/opencode-dcp` for always-on context management (injected via `experimental.chat.system.transform`):
+This project uses `<OpenCode ZCode native compaction — not available on ZCode>` for always-on context management (injected via `ZCode compaction event`):
 
-- **compress**: Phase-level conversation compression (primary DCP tool in the installed beta)
-- **/dcp sweep**: Cleanup command for stale/noisy content after a phase is complete
+- **compress**: Phase-level conversation compression (primary ZCode compaction mechanism)
+- **ZCode session compaction**: Cleanup command for stale/noisy content after a phase is complete
 - **Prunable-tools list**: Auto-injected into messages with token estimates
 - **Nudge system**: Reminders every N tool calls + critical limit warnings
 
 **Division of responsibility:**
 
-- **DCP plugin**: Context budget rules, tool guidance, prunable-tools list, nudges (always present via system prompt)
-- **Compaction plugin** (`.opencode/plugin/compaction.ts`): Session continuity, beads state, handoff recovery, post-compaction protocol (fires during compaction events only)
+- **ZCode native compaction**: Context budget rules, tool guidance, prunable-tools list, nudges (always present via system prompt)
+- **Compaction plugin** (`ZCode compaction runtime (built into the app)`): Session continuity, beads state, handoff recovery, post-compaction protocol (fires during compaction events only)
 
 ## Anti-Patterns
 
@@ -296,7 +296,7 @@ compress({ summary: "Explored auth options" })
 // By the time you notice, emergency compaction loses information
 ```
 
-**Fix**: Monitor regularly. Compress at natural breakpoints and use `/dcp sweep` after closed phases.
+**Fix**: Monitor regularly. Compress at natural breakpoints and use ZCode session compaction (`compactSession`) after closed phases.
 
 ## Checklist
 

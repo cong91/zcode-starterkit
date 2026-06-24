@@ -190,7 +190,7 @@ For simple, well-scoped work (bugs, small tasks):
 
 For features and complex work, use the full template:
 
-Read the PRD template from `.opencode/memory/_templates/prd.md` and write it to `.beads/artifacts/$BEAD_ID/prd.md`.
+Read the PRD template from `.zcode/memory/_templates/prd.md` and write it to `.beads/artifacts/$BEAD_ID/prd.md`.
 
 ## Phase 7: Write PRD
 

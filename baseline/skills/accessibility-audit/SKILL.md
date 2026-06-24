@@ -181,7 +181,7 @@ For each interactive component:
 
 ## Storage
 
-Save audit reports to `.opencode/memory/design/accessibility/`
+Save audit reports to `.zcode/memory/design/accessibility/`
 
 ## Related Skills
 

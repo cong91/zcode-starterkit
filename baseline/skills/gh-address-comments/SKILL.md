@@ -23,7 +23,7 @@ Fetch PR comments and review threads, then apply selected fixes.
 ## Workflow
 
 1. Check auth: `gh auth status`
-2. Fetch comments: `python3 .opencode/skill/gh-address-comments/scripts/fetch_comments.py`
+2. Fetch comments: `python3 .zcode/skill/gh-address-comments/scripts/fetch_comments.py`
 3. Present numbered comment threads with short fix summaries
 4. Ask which comments to address
 5. Implement only selected fixes and report results

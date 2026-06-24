@@ -51,7 +51,7 @@ Install at [github.com/apps/augmentcode](https://github.com/apps/augmentcode/ins
 
 The skill's `mcp.json` uses `mcp-remote` to bridge the remote API via stdio.
 
-For global access, add to `~/.config/opencode/opencode.json`:
+For global access, add to `~/.zcode/config.json`:
 
 ```json
 {

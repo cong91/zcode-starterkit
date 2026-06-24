@@ -37,12 +37,12 @@ Capture screenshots at OS level for desktop apps, windows, regions, or full scre
 
 ```bash
 # macOS/Linux default capture
-python3 .opencode/skill/screenshot/scripts/take_screenshot.py
+python3 .zcode/skill/screenshot/scripts/take_screenshot.py
 
 # capture app window(s) on macOS to temp
-bash .opencode/skill/screenshot/scripts/ensure_macos_permissions.sh && \
-python3 .opencode/skill/screenshot/scripts/take_screenshot.py --app "Codex" --mode temp
+bash .zcode/skill/screenshot/scripts/ensure_macos_permissions.sh && \
+python3 .zcode/skill/screenshot/scripts/take_screenshot.py --app "Codex" --mode temp
 
 # region capture
-python3 .opencode/skill/screenshot/scripts/take_screenshot.py --mode temp --region 100,200,800,600
+python3 .zcode/skill/screenshot/scripts/take_screenshot.py --mode temp --region 100,200,800,600
 ```

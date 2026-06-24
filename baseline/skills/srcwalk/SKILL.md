@@ -153,6 +153,6 @@ Rust, TypeScript, TSX, JavaScript, Python, Go, Java, Scala, C, C++, Ruby, PHP, C
 
 ## Setup
 
-The srcwalk plugin is auto-discovered from `.opencode/plugin/srcwalk.ts`. No registration needed.
+The srcwalk plugin is exposed as MCP tools by `the mcp-tools plugin (srcwalk_* MCP tools)`. Available when the mcp-tools plugin is enabled.
 
 All scope paths are relative to the **project root directory**. The default scope resolves from the project root.

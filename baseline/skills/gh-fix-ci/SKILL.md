@@ -32,7 +32,7 @@ Diagnose failing PR checks, extract actionable logs, and propose focused fixes.
 ## Script
 
 ```bash
-python3 .opencode/skill/gh-fix-ci/scripts/inspect_pr_checks.py --repo . --pr 123
+python3 .zcode/skill/gh-fix-ci/scripts/inspect_pr_checks.py --repo . --pr 123
 ```
 
 Add `--json` for machine-friendly output.

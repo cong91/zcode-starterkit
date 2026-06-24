@@ -143,8 +143,8 @@ Minimum quality gate:
 
 ## Storage
 
-- Save audits to `.opencode/memory/design/audits/`
-- Save extracted token snapshots to `.opencode/memory/design/tokens/`
+- Save audits to `.zcode/memory/design/audits/`
+- Save extracted token snapshots to `.zcode/memory/design/tokens/`
 
 ## See Also
 

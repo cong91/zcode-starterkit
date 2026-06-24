@@ -28,15 +28,15 @@ class Args(argparse.Namespace):
 
 
 def _request(url: str) -> bytes:
-    return github_request(url, "opencode-skill-list")
+    return github_request(url, "zcode-skill-list")
 
 
-def _opencode_home() -> str:
-    return os.environ.get("OPENCODE_HOME", os.path.expanduser("~/.config/opencode"))
+def _zcode_home() -> str:
+    return os.environ.get("OPENCODE_HOME", os.path.expanduser("~/.zcode"))
 
 
 def _installed_skills() -> set[str]:
-    root = os.path.join(_opencode_home(), "skill")
+    root = os.path.join(_zcode_home(), "skill")
     if not os.path.isdir(root):
         return set()
     entries = set()

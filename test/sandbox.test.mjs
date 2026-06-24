@@ -48,11 +48,11 @@ test('sandbox install produces plugins, marketplace, enabledPlugins, merged conf
   assert.ok('agent' in cfg, 'agent block missing in merged config')
   assert.ok('mcp' in cfg, 'mcp block missing in merged config')
   assert.equal(cfg.plugin, undefined, 'plugin[] must not be present (OpenCode TS plugins stripped)')
-  // baseline/config.json carries provider.github-copilot, so the github-copilot/*
-  // model refs are valid within the merged config and are kept. On a real ZCode
-  // box the user's v2/config.json has builtin:zai providers instead; the merge is
-  // additive and only adds missing keys, so the user's own model/provider wins.
-  assert.equal(typeof cfg.model, 'string', 'model must be present (baseline provider valid in merged config)')
+  // Curated for ZCode: baseline/config.json drops OpenCode-only model/provider
+  // so ZCode uses its native GLM provider. Agent descriptions are kept (no model).
+  assert.equal(cfg.model, undefined, 'OpenCode-only top-level model must be stripped (ZCode uses native GLM)')
+  assert.equal(cfg.provider, undefined, 'OpenCode-only provider block must be stripped (ZCode uses native providers)')
+  assert.ok(cfg.agent.build && !cfg.agent.build.model, 'agent.build must keep description but drop OpenCode model ref')
 })
 
 test('sandbox install writes only under the sandbox home, never the real ~/.zcode', async () => {
@@ -82,6 +82,6 @@ test('sandbox install copies ~130+ skills and ~24+ commands', async () => {
   const commandsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', '0.1.0', 'commands')
   const skillCount = fs.readdirSync(skillsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length
   const commandCount = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md')).length
-  assert.ok(skillCount >= 130, `expected ~132 skills, got ${skillCount}`)
-  assert.ok(commandCount >= 24, `expected ~26 commands, got ${commandCount}`)
+  assert.ok(skillCount >= 115, `expected ~119 curated skills (13 overlap with native superpowers removed), got ${skillCount}`)
+  assert.ok(commandCount >= 24, `expected ~27 commands, got ${commandCount}`)
 })

@@ -95,7 +95,7 @@ grep -cE "(Inter|Roboto)" treatment.html
 
 ### Step 5: Record result
 
-Append one JSONL line to `.opencode/evals/log.jsonl`:
+Append one JSONL line to `.zcode/evals/log.jsonl`:
 
 ```json
 {
@@ -168,7 +168,7 @@ Fix in this order: verifier → task difficulty → skill content. Delete the sk
 ## Eval Storage Convention
 
 ```
-.opencode/evals/
+.zcode/evals/
 ├── log.jsonl                    # append-only, one line per run
 ├── tasks/                       # task definitions
 │   ├── anti-slop-001.md
@@ -202,7 +202,7 @@ After running an eval, return:
 - **Treatment:** N/M passes
 - **Delta:** [+/-N]
 - **Verdict:** keep | iterate | delete
-- **Trace:** `.opencode/evals/log.jsonl` line <N>
+- **Trace:** `.zcode/evals/log.jsonl` line <N>
 ```
 
 Brief. Evidence-based. No padding.

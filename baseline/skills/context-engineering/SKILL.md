@@ -106,8 +106,8 @@ Every task dispatched to a worker agent MUST include an explicit context block:
 ### Static Context (always available)
 
 - Project rules: AGENTS.md
-- Tech stack: .opencode/memory/project/tech-stack.md
-- Gotchas: .opencode/memory/project/gotchas.md
+- Tech stack: .zcode/memory/project/tech-stack.md
+- Gotchas: .zcode/memory/project/gotchas.md
 
 ### Runtime Context (this task only)
 
@@ -157,7 +157,7 @@ Verification:
 These files are the project's invariant layer. Always available, never stale:
 
 ```
-.opencode/memory/project/
+.zcode/memory/project/
 ├── user.md          # User preferences, workflow rules
 ├── tech-stack.md    # Frameworks, constraints
 ├── gotchas.md       # Footguns, warnings

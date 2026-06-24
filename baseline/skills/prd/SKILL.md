@@ -37,7 +37,7 @@ If no bead id exists, create one first: `br create "Feature Name"`, then use the
 1. Confirm if the user has an existing bead id.
    - If yes: use `.beads/artifacts/<bead-id>/prd.md`
    - If no: create bead with `br create "Feature Name"`, then use artifact path
-2. Read template from `.opencode/memory/_templates/prd.md`
+2. Read template from `.zcode/memory/_templates/prd.md`
 3. Ask clarifying questions (5–7 max).
 4. Explore codebase patterns and constraints.
 5. Write a PRD following the template structure, including:
@@ -82,7 +82,7 @@ If no bead id exists, create one first: `br create "Feature Name"`, then use the
 
 ## Output Format
 
-**Read the template:** `.opencode/memory/_templates/prd.md`
+**Read the template:** `.zcode/memory/_templates/prd.md`
 
 Follow the template structure which includes:
 

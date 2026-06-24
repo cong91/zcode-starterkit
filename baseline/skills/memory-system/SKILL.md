@@ -90,7 +90,7 @@ The `memory-admin` tool supports these operations:
 | `archive` | Archive observations older than N days |
 | `checkpoint` | Checkpoint WAL file |
 | `vacuum` | Vacuum database |
-| `migrate` | Import .opencode/memory/observations/*.md into SQLite |
+| `migrate` | Import .zcode/memory/observations/*.md into SQLite |
 | `capture-stats` | Temporal message capture statistics |
 | `distill-now` | Force distillation for current session |
 | `curate-now` | Force curator run |

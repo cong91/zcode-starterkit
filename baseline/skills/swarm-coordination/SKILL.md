@@ -199,8 +199,8 @@ const shared = await swarm({
 | ----------------- | ----------------------------------------------- | ------------- |
 | Beads tasks       | `.beads/issues/*.md`                            | Git-backed    |
 | Swarm progress    | `.beads/swarm-progress.jsonl`                   | Session       |
-| Shared task lists | `~/.local/share/opencode/storage/shared-tasks/` | Cross-session |
-| OpenCode todos    | `~/.local/share/opencode/storage/todo/`         | Session       |
+| Shared task lists | `~/.zcode/storage/shared-tasks/` | Cross-session |
+| OpenCode todos    | `~/.zcode/storage/todo/`         | Session       |
 
 ## Rules
 

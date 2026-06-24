@@ -28,7 +28,7 @@ This command invokes the `audit-pattern` workflow for multi-agent parallel execu
 
 ### Workflow Execution
 
-1. **Read the workflow:** `.opencode/workflows/audit-pattern.md`
+1. **Read the workflow:** `.zcode/workflows/audit-pattern.md`
 2. **Execute all phases:**
    - Phase 1: Spawn 1 @explore agent to discover all occurrences
    - Phase 2: Spawn multiple @review agents (dynamic count based on occurrences)
@@ -37,7 +37,7 @@ This command invokes the `audit-pattern` workflow for multi-agent parallel execu
    - `{pattern}` → the pattern from $ARGUMENTS
    - `{phase_N_output}` → actual output from completed phases
 4. **Aggregate results** between phases
-5. **Write final report** to `.opencode/artifacts/$(cat .opencode/artifacts/.active)/audit.md`
+5. **Write final report** to `.zcode/artifacts/$(cat .zcode/artifacts/.active)/audit.md`
 
 **Announce:** "Auditing codebase for pattern: [pattern]. Invoking audit-pattern workflow."
 

@@ -47,8 +47,8 @@ const args = {
 Use tilth or Read to check for existing files:
 
 ```typescript
-tilth_tilth_files({ pattern: "*.md", scope: ".opencode/memory/project" });
-// Or: Read({ filePath: ".opencode/memory/project/project.md", limit: 20 });
+tilth_tilth_files({ pattern: "*.md", scope: ".zcode/memory/project" });
+// Or: Read({ filePath: ".zcode/memory/project/project.md", limit: 20 });
 ```
 
 **If planning context exists:**
@@ -79,7 +79,7 @@ task({
   subagent_type: "explore",
   description: "Analyze tech stack",
   prompt:
-    "Analyze the codebase technology stack. Write findings to .opencode/memory/project/codebase/tech-analysis.md covering: languages, frameworks, dependencies, build tools. Return file path and line count only.",
+    "Analyze the codebase technology stack. Write findings to .zcode/memory/project/codebase/tech-analysis.md covering: languages, frameworks, dependencies, build tools. Return file path and line count only.",
 });
 
 // Agent 2: Map architecture
@@ -87,7 +87,7 @@ task({
   subagent_type: "explore",
   description: "Analyze architecture",
   prompt:
-    "Analyze the codebase architecture. Write findings to .opencode/memory/project/codebase/arch-analysis.md covering: patterns, directory structure, entry points. Return file path and line count only.",
+    "Analyze the codebase architecture. Write findings to .zcode/memory/project/codebase/arch-analysis.md covering: patterns, directory structure, entry points. Return file path and line count only.",
 });
 
 // Wait for agents and collect confirmations
@@ -125,7 +125,7 @@ This file is auto-injected into every prompt. Keep it concise.
 **Load template:**
 
 ```typescript
-Read({ filePath: ".opencode/memory/_templates/project.md" });
+Read({ filePath: ".zcode/memory/_templates/project.md" });
 ```
 
 **Fill with gathered data:**
@@ -195,7 +195,7 @@ If `--brownfield` analysis was run:
 
 ```typescript
 // Append tech/arch findings to project.md Context Notes section
-// Or create separate .opencode/memory/project/codebase/ documents
+// Or create separate .zcode/memory/project/codebase/ documents
 ```
 
 ## Phase 4: Verification & Security
@@ -203,11 +203,11 @@ If `--brownfield` analysis was run:
 ### 4.1 Verify Documents Created
 
 ```typescript
-tilth_tilth_files({ pattern: "*.md", scope: ".opencode/memory/project" });
+tilth_tilth_files({ pattern: "*.md", scope: ".zcode/memory/project" });
 // Verify each file exists and has content
-Read({ filePath: ".opencode/memory/project/project.md", limit: 5 });
-Read({ filePath: ".opencode/memory/project/roadmap.md", limit: 5 });
-Read({ filePath: ".opencode/memory/project/state.md", limit: 5 });
+Read({ filePath: ".zcode/memory/project/project.md", limit: 5 });
+Read({ filePath: ".zcode/memory/project/roadmap.md", limit: 5 });
+Read({ filePath: ".zcode/memory/project/state.md", limit: 5 });
 ```
 
 **Check:**
@@ -221,7 +221,7 @@ Read({ filePath: ".opencode/memory/project/state.md", limit: 5 });
 
 ```bash
 # Scan for accidentally leaked secrets in generated docs
-grep -rE '(sk-[a-zA-Z0-9]{20,}|sk_live_[a-zA-Z0-9]+|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|xoxb-[a-zA-Z0-9-]+|-----BEGIN.*PRIVATE KEY)' .opencode/memory/project/*.md 2>/dev/null && SECRETS_FOUND=true || SECRETS_FOUND=false
+grep -rE '(sk-[a-zA-Z0-9]{20,}|sk_live_[a-zA-Z0-9]+|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|xoxb-[a-zA-Z0-9-]+|-----BEGIN.*PRIVATE KEY)' .zcode/memory/project/*.md 2>/dev/null && SECRETS_FOUND=true || SECRETS_FOUND=false
 ```
 
 **If secrets found:** Alert user and pause before proceeding.
@@ -240,7 +240,7 @@ grep -rE '(sk-[a-zA-Z0-9]{20,}|sk_live_[a-zA-Z0-9]+|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z
 
 ## Output
 
-Creates planning context in `.opencode/memory/project/`:
+Creates planning context in `.zcode/memory/project/`:
 
 | File         | Purpose                                  | Injection   | Access                                       |
 | ------------ | ---------------------------------------- | ----------- | -------------------------------------------- |
@@ -249,7 +249,7 @@ Creates planning context in `.opencode/memory/project/`:
 | `state.md`   | Current position, blockers, next actions | On-demand   | `memory-read({ file: "project/state" })`     |
 
 **If `--brownfield`:**
-Additional files in `.opencode/memory/project/codebase/`:
+Additional files in `.zcode/memory/project/codebase/`:
 
 - `tech-analysis.md` - Stack and dependencies
 - `arch-analysis.md` - Architecture patterns
@@ -264,10 +264,10 @@ Additional files in `.opencode/memory/project/codebase/`:
 
 ## Custom Context (Optional)
 
-Inform user about `.opencode/context/` for additional project-specific context:
+Inform user about `.zcode/context/` for additional project-specific context:
 
 ```
-Custom context folder available at .opencode/context/
+Custom context folder available at .zcode/context/
 - Add .md files with architecture decisions, domain knowledge, team agreements
 - This folder is preserved during init --force and upgrade
 
@@ -283,7 +283,7 @@ After init-context completes:
 1. **For new projects:** Use `/plan` to create first implementation plan
 2. **For brownfield:** Review codebase analysis, then `/plan`
 3. **For existing beads:** Use `/resume` to continue tracked work
-4. **For custom context:** Add `.md` files to `.opencode/context/` (on-demand via Read, not auto-injected)
+4. **For custom context:** Add `.md` files to `.zcode/context/` (on-demand via Read, not auto-injected)
 
 ---
 

@@ -1,12 +1,12 @@
 ---
-description: Audit .opencode/ configuration for consistency, stale references, and enforcement gaps
+description: Audit .zcode/ configuration for consistency, stale references, and enforcement gaps
 argument-hint: "[--fix] [--layer <intent|knowledge|control>]"
 agent: review
 ---
 
 # Health Check: $ARGUMENTS
 
-Self-audit the .opencode/ configuration for drift, inconsistencies, and enforcement gaps.
+Self-audit the .zcode/ configuration for drift, inconsistencies, and enforcement gaps.
 
 ## Load Skills
 
@@ -33,20 +33,20 @@ A rule that exists at intent but not control is a gap. This command finds those 
 
 ## Phase 1: Inventory
 
-Build an inventory of all .opencode/ artifacts:
+Build an inventory of all .zcode/ artifacts:
 
 ```bash
 # Count artifacts
 echo "=== Skills ==="
-ls .opencode/skill/ | wc -l
+ls .zcode/skill/ | wc -l
 echo "=== Commands ==="
-ls .opencode/command/ | wc -l
+ls .zcode/command/ | wc -l
 echo "=== Agents ==="
-ls .opencode/agent/ | wc -l
+ls .zcode/agent/ | wc -l
 echo "=== Tools ==="
-ls .opencode/tool/ 2>/dev/null | wc -l
+ls .zcode/tool/ 2>/dev/null | wc -l
 echo "=== Plugins ==="
-ls .opencode/plugin/ 2>/dev/null | wc -l
+ls .zcode/plugin/ 2>/dev/null | wc -l
 ```
 
 Report totals as a summary table.
@@ -57,23 +57,23 @@ Check for references to skills, commands, or agents that don't exist:
 
 ### 2a. Skill references in commands and AGENTS.md
 
-For every `skill({ name: "X" })` call found in `.opencode/command/*.md` and `AGENTS.md`:
+For every `skill({ name: "X" })` call found in `.zcode/command/*.md` and `AGENTS.md`:
 
-- Verify `.opencode/skill/X/SKILL.md` exists
+- Verify `.zcode/skill/X/SKILL.md` exists
 - Flag any that don't exist as **CRITICAL**
 
 ### 2b. Command references in skills and AGENTS.md
 
-For every `/command-name` reference found in `.opencode/skill/*/SKILL.md` and `AGENTS.md`:
+For every `/command-name` reference found in `.zcode/skill/*/SKILL.md` and `AGENTS.md`:
 
-- Verify `.opencode/command/command-name.md` exists
+- Verify `.zcode/command/command-name.md` exists
 - Flag missing as **IMPORTANT**
 
 ### 2c. Agent references
 
 For every `agent: X` in command frontmatter:
 
-- Verify `.opencode/agent/X.md` exists (or is a built-in agent)
+- Verify `.zcode/agent/X.md` exists (or is a built-in agent)
 - Flag missing as **CRITICAL**
 
 ### 2d. Cross-references between skills
@@ -95,7 +95,7 @@ Report format:
 
 ## Phase 3: Skill Quality Audit
 
-For each skill in `.opencode/skill/*/SKILL.md`:
+For each skill in `.zcode/skill/*/SKILL.md`:
 
 1. **Frontmatter check:**
    - [ ] Has `name:` field
@@ -167,9 +167,9 @@ Estimate the total token cost of context injected into each command execution:
 # Base context (always injected)
 echo "=== Base Context ==="
 wc -c AGENTS.md
-wc -c .opencode/memory/project/user.md .opencode/memory/project/tech-stack.md .opencode/memory/project/project.md 2>/dev/null
+wc -c .zcode/memory/project/user.md .zcode/memory/project/tech-stack.md .zcode/memory/project/project.md 2>/dev/null
 echo "=== Agent Prompts ==="
-wc -c .opencode/agent/*.md 2>/dev/null
+wc -c .zcode/agent/*.md 2>/dev/null
 ```
 
 For each command, estimate total context = Base + Agent prompt + Skills loaded:
@@ -195,9 +195,9 @@ Find instructions duplicated across layers:
 ```bash
 # Find common instruction phrases across AGENTS.md and agent prompts
 # Look for exact or near-duplicate paragraphs
-grep -hF "Never" AGENTS.md .opencode/agent/*.md | sort | uniq -c | sort -rn | head -20
-grep -hF "Always" AGENTS.md .opencode/agent/*.md | sort | uniq -c | sort -rn | head -20
-grep -hF "MUST" AGENTS.md .opencode/agent/*.md | sort | uniq -c | sort -rn | head -20
+grep -hF "Never" AGENTS.md .zcode/agent/*.md | sort | uniq -c | sort -rn | head -20
+grep -hF "Always" AGENTS.md .zcode/agent/*.md | sort | uniq -c | sort -rn | head -20
+grep -hF "MUST" AGENTS.md .zcode/agent/*.md | sort | uniq -c | sort -rn | head -20
 ```
 
 Also check for:
@@ -235,14 +235,14 @@ Identify repeated boilerplate across skills and commands:
 
 ````bash
 # Find common blocks across skills
-for f in .opencode/skill/*/SKILL.md; do
+for f in .zcode/skill/*/SKILL.md; do
   grep -c "## When to Use" "$f"
   grep -c "## When NOT to Use" "$f"
 done
 
 # Find repeated code blocks
-grep -rh "```typescript" .opencode/command/*.md | wc -l
-grep -rh "skill({ name:" .opencode/command/*.md | sort | uniq -c | sort -rn | head -10
+grep -rh "```typescript" .zcode/command/*.md | wc -l
+grep -rh "skill({ name:" .zcode/command/*.md | sort | uniq -c | sort -rn | head -10
 ````
 
 Flag opportunities:
@@ -279,7 +279,7 @@ Recommendations:
 
 ## Phase 6: Agent Tool Restriction Audit
 
-For each agent in `.opencode/agent/*.md`:
+For each agent in `.zcode/agent/*.md`:
 
 1. Read the agent's YAML frontmatter
 2. Check `tools:` restrictions (which tools are disabled)

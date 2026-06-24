@@ -24,8 +24,10 @@ zcs install
 
 Four ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zcode/cli/config.json`:
 
-- **`core`** — 132 skills + 27 commands (ported verbatim from the OpenCode baseline, plus `structural-check`).
-- **`agents-config`** — 9 agent definitions, merged into `~/.zcode/v2/config.json`.
+> **Curated for ZCode (not a raw port):** the 13 workflow skills that overlap with ZCode's native `superpowers@zcode-plugins-official` plugin (brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, executing-plans, etc.) were **removed** so ZCode uses the native versions. OpenCode-only model/provider config was **stripped** so ZCode uses its native GLM provider. All `.opencode` path refs in skills/commands were rewritten to `.zcode`, and OpenCode-specific runtime refs (DCP, `opencode run`, plugin TS paths) were adapted to ZCode equivalents.
+
+- **`core`** — 119 curated skills + 27 commands (ported from OpenCode baseline, deduped against native superpowers, paths/CLI refs adapted to ZCode). Also bundles portable content dirs: `templates/`, `workflows/`, `plans/`, `artifacts/`, `dcp-prompts/`.
+- **`agents-config`** — 9 agent definitions (description only, no model refs), merged into `~/.zcode/v2/config.json`. ZCode's native GLM provider supplies the model.
 - **`mcp-tools`** — an MCP server (`@modelcontextprotocol/sdk`) porting OpenCode baseline tools as MCP tools (18 tools total):
   - `context7` — library documentation lookup
   - `grepsearch` — real-world code search via grep.app
@@ -52,7 +54,7 @@ Four ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zcod
 
   The other 5 formerly-dropped files are now ported via the `hooks` plugin: `guard`, `rtk`, `prompt-leverage`, `session-summary` as shell hooks, and `skill-mcp` as 2 MCP tools.
 
-Config is additively merged into `~/.zcode/v2/config.json` (same `https://opencode.ai/config.json` schema). OpenCode-only `plugin[]` TS entries are stripped.
+Config is additively merged into `~/.zcode/v2/config.json` (same `https://opencode.ai/config.json` schema). The curated baseline keeps `mcp{}`, `permission{}`, `formatter{}`, `agent{}` (descriptions), `compaction{}`, `keybinds`, `instructions`, `share`, `watcher` — and **drops** OpenCode-only `model`/`small_model`/`provider{}` so ZCode uses its native GLM provider. OpenCode-only `plugin[]` TS entries are stripped.
 
 The **core** plugin also bundles these portable content dirs from the OpenCode baseline (reference assets the agent reads via filesystem / `srcwalk_read`): `templates/` (adr, design, prd, project, proposal, roadmap, state, tasks, tech-stack, user), `workflows/`, `plans/`, `artifacts/`, `dcp-prompts/`.
 

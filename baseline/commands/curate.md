@@ -96,7 +96,7 @@ Flag observations with identical or near-identical titles and narratives. Presen
 | Obs A | Obs B | Similarity | Recommended Action |
 |-------|-------|------------|-------------------|
 | #12 "Use JWT for auth" | #45 "JWT chosen for auth" | 95% title match | MERGE → keep #45 (newer) |
-| #8 "Build copies .opencode/" | #33 "Build copies .opencode/" | 100% title match | MERGE → keep #33 (newer) |
+| #8 "Build copies .zcode/" | #33 "Build copies .zcode/" | 100% title match | MERGE → keep #33 (newer) |
 ```
 
 ### 3b. Contradictions

@@ -4,7 +4,7 @@ description: Enforce zcode-starterkit architecture invariants (file sizes, namin
 
 # /structural-check
 
-Run this command to verify zcode-starterkit baseline invariants. It checks the **zcode-starterkit structure** (not OpenCode's `.opencode/plugin` layout, which does not exist here).
+Run this command to verify zcode-starterkit baseline invariants. It checks the **zcode-starterkit structure** (not OpenCode's `.zcode/plugin` layout, which does not exist here).
 
 ## What it checks
 

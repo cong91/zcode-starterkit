@@ -60,6 +60,6 @@ skill_mcp(skill_name="figma-go", tool_name="get_node", arguments='{"node_id":"12
 - This MCP uses a **plugin bridge**, so Figma Desktop must be running with the plugin active.
 - If tools fail, re-run the plugin inside the open Figma file.
 - If you see `Invalid schema for function 'figma-mcp-go_delete_nodes'`, keep the
-  global `mcp.figma-mcp-go` entry **disabled** in `opencode.json` and use this skill
+  global `mcp.figma-mcp-go` entry **disabled** in `config.json` and use this skill
   (via `skill_mcp`) until upstream fixes the schema.
 - Full tool list and prompts: https://github.com/vkhanhqui/figma-mcp-go#available-tools

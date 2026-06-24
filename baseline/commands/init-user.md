@@ -37,10 +37,10 @@ If skipped, infer from `git config user.name` and `git config user.email`.
 
 ## Phase 2: Create user.md
 
-From template `.opencode/memory/_templates/user.md`:
+From template `.zcode/memory/_templates/user.md`:
 
 ```bash
-cp .opencode/memory/_templates/user.md .opencode/memory/project/user.md
+cp .zcode/memory/_templates/user.md .zcode/memory/project/user.md
 ```
 
 Fill in gathered answers:
@@ -90,7 +90,7 @@ observation({
   narrative: "User preferences captured: [style], [workflow prefs], [technical prefs]. Source: /init-user command.",
   concepts: "user-profile, preferences",
   confidence: "high",
-  files_modified: ".opencode/memory/project/user.md",
+  files_modified: ".zcode/memory/project/user.md",
 });
 ```
 
@@ -103,10 +103,10 @@ The default `instructions[]` includes 4 auto-injected files:
 ```json
 {
   "instructions": [
-    ".opencode/memory/project/user.md",
-    ".opencode/memory/project/tech-stack.md",
-    ".opencode/memory/project/project.md",
-    ".opencode/context/git-context.md"
+    ".zcode/memory/project/user.md",
+    ".zcode/memory/project/tech-stack.md",
+    ".zcode/memory/project/project.md",
+    ".zcode/context/git-context.md"
   ]
 }
 ```
@@ -117,9 +117,9 @@ The default `instructions[]` includes 4 auto-injected files:
 
 Output:
 
-1. user.md created at `.opencode/memory/project/user.md`
+1. user.md created at `.zcode/memory/project/user.md`
 2. Preferences captured
 3. 4 files are auto-injected by default: user.md, tech-stack.md, project.md, git-context.md
 4. Additional planning files (roadmap.md, state.md) are on-demand via `/init-context`
-5. Custom context available at `.opencode/context/` (preserved during init --force and upgrade)
+5. Custom context available at `.zcode/context/` (preserved during init --force and upgrade)
 6. Next step: `/init-context` if the user wants fuller project-planning memory files

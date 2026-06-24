@@ -1,6 +1,6 @@
 ---
 name: context-condensation
-description: Use when context is approaching budget limits and you need to compress, OR when handing off to another session. Provides the explicit keep/drop rubric for what survives compression — preserve goals, progress, critical files, failing tests; drop exploration noise and resolved threads. Pairs with `/dcp compress` and `/handoff`. Adapted from OpenHands context-condensation, Manus context engineering, HumanLayer backpressure.
+description: Use when context is approaching budget limits and you need to compress, OR when handing off to another session. Provides the explicit keep/drop rubric for what survives compression — preserve goals, progress, critical files, failing tests; drop exploration noise and resolved threads. Pairs with ZCode session compaction and `/handoff (ZCode session handoff). Adapted from OpenHands context-condensation, Manus context engineering, HumanLayer backpressure.
 ---
 
 # Context Condensation
@@ -11,9 +11,9 @@ description: Use when context is approaching budget limits and you need to compr
 
 - Context >100k tokens and growing
 - Phase boundary reached (research done, ready to implement)
-- Handing off to a new session via `/handoff`
+- Handing off to a new session via `/handoff (ZCode session handoff)
 - A subagent returns large output you need to integrate
-- After `/dcp compress` ran but you still feel context drift
+- After ZCode session compaction ran but you still feel context drift
 
 ## Core Principle: 4 Tiers of Survival
 
@@ -82,7 +82,7 @@ Token count is one trigger. These are the others:
 
 ## The Handoff Variant
 
-When compressing for `/handoff` (different session, different agent will pick up), be **even more selective**:
+When compressing for `/handoff (ZCode session handoff) (different session, different agent will pick up), be **even more selective**:
 
 - Preserve everything in Keep List
 - Add a **`## Next Step`** with the literal next action
@@ -132,8 +132,8 @@ Handoff format:
 
 ## Integration
 
-- **Before `/dcp compress`:** Use this rubric to decide what your `summary` field should contain
-- **In `/handoff`:** This skill defines the handoff format
+- **Before ZCode session compaction:** Use this rubric to decide what your `summary` field should contain
+- **In `/handoff (ZCode session handoff):** This skill defines the handoff format
 - **After subagent return:** Apply Drop List to the agent's narrative, keep result + verification only
 - **In long sessions:** Re-read your own context every ~30 messages and apply the rubric
 

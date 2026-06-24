@@ -55,7 +55,7 @@ For each finding, assign a type:
 | `bugfix`    | A non-obvious bug and its root cause                       | "Bun doesn't support X, use Y instead"          |
 | `decision`  | An architectural or design choice with rationale           | "Chose JWT over sessions because..."            |
 | `warning`   | A footgun, constraint, or thing that looks wrong but isn't | "Don't modify dist/ directly, build overwrites" |
-| `discovery` | A non-obvious fact about the codebase or its dependencies  | "Build copies .opencode/ to dist/template/"     |
+| `discovery` | A non-obvious fact about the codebase or its dependencies  | "Build copies .zcode/ to dist/template/"     |
 | `warning`   | Something that will break if not followed                  | "Always run lint:fix before commit"             |
 
 **Quality bar:** Only record learnings that would save future-you 15+ minutes.
@@ -126,7 +126,7 @@ Ask: does this learning belong as a permanent rule?
 
 If YES (it's a codebase-level constraint everyone must follow):
 
-- Suggest updating `.opencode/memory/project/gotchas.md`
+- Suggest updating `.zcode/memory/project/gotchas.md`
 - Or the relevant skill file if it's procedure-level
 
 If MAYBE (it's a pattern, not a rule):

@@ -1,6 +1,6 @@
 ---
 name: context-management
-description: Unified protocol for context health and session lifecycle management using DCP tools, thresholds, handoff, resume workflows, and post-compaction restoration.
+description: Unified protocol for context health and session lifecycle management using ZCode context-management mechanisms, thresholds, handoff, resume workflows, and post-compaction restoration.
 version: 3.0.0
 tags: [context, workflow, session]
 dependencies: []
@@ -16,7 +16,7 @@ Use this skill to keep context high-signal while preserving edit safety and exec
 
 - Context is growing and signal quality is dropping
 - A phase is complete and should be compressed
-- You are preparing `/handoff` or resuming prior work
+- You are preparing `/handoff (ZCode session handoff) or resuming prior work
 - You need deterministic restoration after compaction
 - You need reusable summary templates for exploration/implementation/debugging
 
@@ -32,13 +32,13 @@ compress > sweep > handoff
 - **sweep**: remove stale/noisy residue from closed chapters
 - **handoff**: reset in a fresh session when compression is insufficient
 
-## DCP Command Usage
+## ZCode Compaction Usage
 
-### `/dcp context`
+### ZCode context-window check
 
 Run at session start and major boundaries to detect pressure early.
 
-### `/dcp compress`
+### ZCode `compactSession`
 
 Primary action for completed chapters.
 
@@ -48,7 +48,7 @@ Use when:
 - implementation wave is complete and verified
 - review output has been synthesized
 
-### `/dcp sweep`
+### ZCode session compaction (`compactSession`)
 
 Secondary cleanup after chapter closure.
 
@@ -67,7 +67,7 @@ Do not sweep active material needed for immediate edits.
 ### 1) Start Session
 
 1. Load task + essential policy docs only
-2. Run `/dcp context`
+2. Run ZCode context-window check
 3. Rehydrate prior state only if needed:
    - `find_sessions({ query })`
    - `read_session({ session_id, focus })`
@@ -100,7 +100,7 @@ Do not sweep active material needed for immediate edits.
 | --------- | --------------- | ---------------------------------- |
 | <50k      | Healthy start   | Keep inputs minimal                |
 | 50k-100k  | Moderate growth | Compress completed phases          |
-| >100k     | High pressure   | Aggressive compress + `/dcp sweep` |
+| >100k     | High pressure   | Aggressive compress + ZCode session compaction (`compactSession`) |
 | >150k     | Near capacity   | Handoff + resume fresh session     |
 
 Guardrails: ~70% consolidate closed exploration, ~85% schedule handoff, ~95% immediate cleanup/restart.
@@ -126,10 +126,10 @@ Is context pressure increasing materially?
 │   └── Continue work; reassess at next phase boundary
 └── YES
     ├── Is there a completed phase with stable conclusions?
-    │   ├── YES -> /dcp compress completed range
+    │   ├── YES -> ZCode session compaction completed range
     │   └── NO
     │       ├── Is growth mostly stale/noisy closed-phase output?
-    │       │   ├── YES -> /dcp sweep
+    │       │   ├── YES -> trigger ZCode compaction
     │       │   └── NO
     │       │       ├── Is most remaining context still active/relevant?
     │       │       │   ├── YES -> Prepare handoff + resume fresh session
@@ -243,11 +243,11 @@ Use these templates to keep summaries dense and recoverable.
 - [if unresolved, next investigation/fix]
 ```
 
-## DCP Plugin Integration
+## ZCode Compaction Integration
 
-This project uses `@tarquinen/opencode-dcp` via `experimental.chat.system.transform`.
+This project uses `<OpenCode ZCode native compaction — not available on ZCode>` via `ZCode compaction event`.
 
-### DCP Responsibilities (Always On)
+### ZCode Compaction Responsibilities (Built-in)
 
 - context budget monitoring + threshold cues
 - `/dcp` command surface (`context`, `compress`, `sweep`, `stats`)
@@ -263,24 +263,24 @@ This project uses `@tarquinen/opencode-dcp` via `experimental.chat.system.transf
 
 ### Division of Responsibility
 
-- **DCP plugin**: measures/surfaces pressure, exposes cleanup commands
+- **ZCode native compaction**: measures/surfaces pressure, exposes cleanup commands
 - **context-management skill**: decides when to apply commands and how to preserve continuity
 
 ### Custom Prompt Overrides
 
-Custom DCP prompts are enabled (`experimental.customPrompts: true`).
+ZCode compaction is managed by the app (`v2/config.json` compaction settings).
 
 Override precedence:
 
-1. `.opencode/dcp-prompts/overrides/` (project)
+1. `~/.zcode/v2/config.json compaction settings` (project)
 2. config directory overrides
-3. `~/.config/opencode/dcp-prompts/overrides/` (global)
+3. `~/~/.zcode/v2/config.json compaction settings` (global)
 
 Key file: `compress-message.md` (structured compression schema). Recommended blocks: Primary Request, Key Technical Concepts, Files/Code, Errors/Fixes, Problem Solving, User Messages, Pending Tasks, Current Work, Next Step.
 
 ## Post-Compaction Restoration Protocol (Critical)
 
-After any compaction (server-side or `/dcp compress`), execute all 5 steps before editing.
+After any compaction (server-side or ZCode `compactSession`), execute all 5 steps before editing.
 
 ### Step 1 — Re-read Active Files (max 5)
 
@@ -376,10 +376,10 @@ Before claiming context cleanup complete, verify:
 ## Quick Playbook
 
 ```text
-1) /dcp context
+1) ZCode context-window check
 2) classify context: active vs closed
-3) /dcp compress on closed chapters
-4) /dcp sweep stale/noisy closed outputs
+3) ZCode session compaction on closed chapters
+4) trigger ZCode compaction for stale/noisy closed outputs
 5) if compaction happened: run 5-step restoration
 6) persist key decisions to memory
 7) handoff/resume with focused rehydration

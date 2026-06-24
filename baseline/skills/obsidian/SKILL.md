@@ -153,7 +153,7 @@ Set your vault path:
 export OBSIDIAN_VAULT_PATH="/path/to/your/obsidian/vault"
 ```
 
-Or configure in opencode.json:
+Or configure in config.json:
 
 ```json
 {
