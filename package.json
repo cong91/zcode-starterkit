@@ -1,0 +1,26 @@
+{
+  "name": "zcode-starterkit",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Global baseline (ZCode plugins) + thin project overlay installer for ZCode Agent.",
+  "license": "MIT",
+  "bin": {
+    "zcode-starterkit": "./bin/zcode-starterkit.mjs",
+    "zcs": "./bin/zcs.mjs"
+  },
+  "files": [
+    "baseline",
+    "bin",
+    "src",
+    "test",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "test:smoke": "node ./bin/zcode-starterkit.mjs --help && node ./bin/zcs.mjs --help"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
