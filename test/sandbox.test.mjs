@@ -26,6 +26,15 @@ test('sandbox install produces plugins, marketplace, enabledPlugins, merged conf
   assert.ok(fs.existsSync(path.join(agentsDir, '.zcode-plugin', 'plugin.json')), 'agents plugin.json missing')
   assert.ok(fs.existsSync(path.join(agentsDir, 'agents', 'build.md')), 'agents md missing')
 
+  // context/ must be bundled: /init's default config instructions[] references
+  // .zcode/context/git-context.md, and the only source for it is the bundled
+  // core plugin. Without bundling, every freshly-init'd project has a dangling
+  // instruction that injects nothing.
+  assert.ok(
+    fs.existsSync(path.join(coreDir, 'context', 'git-context.md')),
+    'context/git-context.md must be bundled into the core plugin',
+  )
+
   const mp = JSON.parse(fs.readFileSync(path.join(home, 'cli', 'plugins', 'marketplaces', 'zcode-starterkit', 'marketplace.json'), 'utf8'))
   assert.equal(mp.name, 'zcode-starterkit')
   assert.equal(mp.plugins.length, 4)

@@ -26,9 +26,12 @@ node -e "const p=require('path').join(require('os').homedir(),'.zcode','cli','pl
 
 The core plugin directory (named by version) contains the baseline assets the agent reads during `/init`:
 
-- `<core-plugin>/memory/`
-- `<core-plugin>/memory/project/`
-- `<core-plugin>/memory/_templates/`
+- `<core-plugin>/memory/` — project memory + `_templates/` (scaffolds for `AGENTS.md`, `tech-stack.md`, `project.md`, `user.md`, etc.)
+- `<core-plugin>/templates/` — document-authoring templates (`adr.md`, `design.md`, `prd.md`, `proposal.md`, `roadmap.md`, `state.md`, `tasks.md`, ...)
+- `<core-plugin>/workflows/` — multi-agent workflow definitions (`audit-pattern.md`, `batch-implement.md`, `deep-research.md`, `development-lifecycle-workflow.md`, `garbage-collection.md`)
+- `<core-plugin>/plans/` — reference plan documents (`swarm-protocol.md` + example plans)
+- `<core-plugin>/context/` — auto-injected + on-demand context (`git-context.md` is referenced by the default `instructions[]`; `architecture.md` / `fallow.md` are read on demand)
+- `<core-plugin>/artifacts/` and `<core-plugin>/dcp-prompts/` — reference-only (read via filesystem / `srcwalk_read`; not materialized into the project)
 
 If the cache root or baseline files do not exist, tell the user to run `npx zcode-starterkit` once globally, then re-run `/init`. Do **not** attempt global install from inside a project.
 
@@ -56,6 +59,12 @@ Rules:
 - If `.zcode/config.json` already exists, do **not** overwrite it. If it lacks critical `instructions[]`, propose the additive patch before editing.
 - Copy support memory files/directories from `<core-plugin>/memory/` into `.zcode/memory/` using missing-only semantics.
 - For `.zcode/memory/project/*.md`, create missing files only. Do **not** overwrite existing memory markdown.
+- Materialize the bundled reference dirs into the project overlay using missing-only semantics so the project is self-contained and does not depend on the plugin cache at runtime:
+  - `<core-plugin>/templates/` → `.zcode/templates/` (document-authoring templates for `/create`, `/design`, `/plan` artifact output)
+  - `<core-plugin>/workflows/` → `.zcode/workflows/` (multi-agent workflow definitions)
+  - `<core-plugin>/plans/` → `.zcode/plans/` (reference plans)
+  - `<core-plugin>/context/` → `.zcode/context/` (this is what makes the `git-context.md` entry in `instructions[]` resolve — without it every fresh init has a dangling instruction that injects nothing)
+- For every materialized dir, copy **missing files only**. Do **not** overwrite project edits to templates/workflows/plans/context on re-init. Existing files win.
 - Never create, truncate, replace, or bootstrap `.zcode/memory.db` in `/init`.
 - Never touch `.zcode/memory.db-shm`, `.zcode/memory.db-wal`, corrupt DB backups, or recovery logs.
 
@@ -64,9 +73,14 @@ Suggested shell for missing-only support copy if available:
 ```bash
 mkdir -p .zcode/memory/project
 cp -Rn "<core-plugin>/memory/." .zcode/memory/ 2>/dev/null || true
+# Materialize the bundled reference dirs (missing-only; existing project files win).
+for d in templates workflows plans context; do
+  mkdir -p ".zcode/$d"
+  cp -Rn "<core-plugin>/$d/." ".zcode/$d/" 2>/dev/null || true
+done
 ```
 
-After copy, inspect what exists and fill any missing project markdown files with repo-specific starter content. Existing files win.
+After copy, inspect what exists and fill any missing project markdown files with repo-specific starter content. Existing files win. Confirm `.zcode/context/git-context.md` exists — it is referenced by the default `instructions[]` and must resolve.
 
 ## Phase 2: CodeGraph local intelligence
 
@@ -221,6 +235,8 @@ Verify:
 
 - [ ] `.zcode/` overlay exists and no existing memory DB was touched
 - [ ] Missing project memory files were created; existing memory markdown was preserved
+- [ ] `.zcode/context/git-context.md` exists (the default `instructions[]` entry resolves — no dangling instruction)
+- [ ] `.zcode/templates/`, `.zcode/workflows/`, `.zcode/plans/` were materialized (missing-only); existing project files preserved
 - [ ] CodeGraph refreshed or explicitly skipped/unavailable
 - [ ] AGENTS.md is created/updated safely
 - [ ] Project commands were detected and validated where practical
@@ -229,7 +245,12 @@ Output:
 
 1. Overlay result: created/preserved files
 2. Memory DB safety: confirm untouched
-3. CodeGraph result: refreshed/skipped/warn
-4. Files created/updated
-5. Commands validated
-6. Suggested next steps: `/init-user`, `/init-context`, `/review-codebase`
+3. Materialized reference dirs: templates/ workflows/ plans/ context/ (created/preserved counts)
+4. CodeGraph result: refreshed/skipped/warn
+5. Files created/updated
+6. Commands validated
+7. **Starterkit commands available** (installed globally by `npx zcode-starterkit`; if any are not yet visible in the ZCode command palette, restart ZCode so the plugin loader re-reads `installed_plugins.json`):
+
+   `audit`, `compound`, `create`, `curate`, `design`, `explore`, `fix`, `gc`, `handoff`, `health`, `init-context`, `init-user`, `iterate`, `lfg`, `plan`, `pr`, `research`, `resume`, `review-codebase`, `ship`, `start`, `status`, `structural-check`, `ui-review`, `ui-slop-check`, `verify`
+
+8. Suggested next steps: `/init-user`, `/init-context`, `/review-codebase`

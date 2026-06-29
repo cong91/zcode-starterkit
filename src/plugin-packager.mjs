@@ -62,11 +62,15 @@ export function packageBaselineAsPlugins({ zcodeHome, baselineRoot }) {
   copyDirRecursive(path.join(baselineRoot, 'commands'), path.join(coreDir, 'commands'))
   // Portable content dirs from the OpenCode baseline — bundled with the core
   // plugin so the ZCode agent can reach templates/workflows/plans/artifacts/
-  // dcp-prompts/memory without a separate install. (Plugin.json only declares
-  // skills + commands as loadable surfaces; these dirs are reference assets the
-  // agent reads via the filesystem / srcwalk_read.) memory/ is included so the
-  // /init runbook can copy _templates into the project overlay.
-  for (const dir of ['templates', 'workflows', 'plans', 'artifacts', 'dcp-prompts', 'memory']) {
+  // dcp-prompts/memory/context without a separate install. (Plugin.json only
+  // declares skills + commands as loadable surfaces; these dirs are reference
+  // assets the agent reads via the filesystem / srcwalk_read.) memory/ is
+  // included so the /init runbook can copy _templates into the project overlay.
+  // context/ carries git-context.md (auto-injected into every prompt via the
+  // /init instructions[]) plus architecture.md / fallow.md (read on demand).
+  // /init materializes templates/, workflows/, plans/, context/ into the
+  // per-project .zcode/ overlay; artifacts/ + dcp-prompts/ stay reference-only.
+  for (const dir of ['templates', 'workflows', 'plans', 'artifacts', 'dcp-prompts', 'memory', 'context']) {
     copyDirRecursive(path.join(baselineRoot, dir), path.join(coreDir, dir))
   }
   writeText(path.join(coreDir, '.zcode-plugin', 'plugin.json'),

@@ -52,7 +52,7 @@ Four ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zcod
 
 > **Curated for ZCode (not a raw port):** the 13 workflow skills that overlap with ZCode's native `superpowers@zcode-plugins-official` plugin (brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, executing-plans, etc.) were **removed** so ZCode uses the native versions. OpenCode-only model/provider config was **stripped** so ZCode uses its native GLM provider. All `.opencode` path refs in skills/commands were rewritten to `.zcode`, and OpenCode-specific runtime refs (DCP, `opencode run`, plugin TS paths) were adapted to ZCode equivalents.
 
-- **`core`** — 119 curated skills + 27 commands (ported from OpenCode baseline, deduped against native superpowers, paths/CLI refs adapted to ZCode). Also bundles portable content dirs: `templates/`, `workflows/`, `plans/`, `artifacts/`, `dcp-prompts/`, `memory/` (project templates the `/init` runbook copies into the per-project overlay).
+- **`core`** — 119 curated skills + 27 commands (ported from OpenCode baseline, deduped against native superpowers, paths/CLI refs adapted to ZCode). Also bundles portable content dirs: `templates/`, `workflows/`, `plans/`, `artifacts/`, `dcp-prompts/`, `memory/`, and `context/` (auto-injected + on-demand project context). The `/init` runbook materializes `memory/`, `templates/`, `workflows/`, `plans/`, and `context/` into the per-project `.zcode/` overlay (missing-only, existing files preserved); `artifacts/` and `dcp-prompts/` stay reference-only (the agent reads them via filesystem / `srcwalk_read`).
 - **`agents-config`** — 9 agent definitions (description only, no model refs), merged into `~/.zcode/v2/config.json`. ZCode's native GLM provider supplies the model.
 - **`mcp-tools`** — an MCP server (`@modelcontextprotocol/sdk`) porting OpenCode baseline tools as MCP tools (18 tools total):
   - `context7` — library documentation lookup
@@ -113,7 +113,17 @@ The baseline `config.json` ships **no** static `webclaw` (or `codegraph`) MCP en
 
 ## /init project setup
 
-After the global install, run `/init` inside a project to materialize a thin `.zcode/` overlay, refresh CodeGraph for that project, detect the stack, and synthesize an `AGENTS.md` from the `memory/_templates/agents.md` scaffold. The `/init` runbook is agent-driven (no legacy project-install shim) and is the only project setup path.
+After the global install, run `/init` inside a project to materialize a `.zcode/` overlay, refresh CodeGraph for that project, detect the stack, and synthesize an `AGENTS.md` from the `memory/_templates/agents.md` scaffold. The `/init` runbook is agent-driven (no legacy project-install shim) and is the only project setup path.
+
+`/init` materializes these bundled dirs into the project overlay (missing-only — existing files are preserved on re-init):
+
+- `memory/` → `.zcode/memory/` (project memory + `_templates/` scaffolds; `git-context.md` lives under `context/`, see below)
+- `templates/` → `.zcode/templates/` (document-authoring templates for `/create`, `/design`, `/plan`)
+- `workflows/` → `.zcode/workflows/` (multi-agent workflow definitions)
+- `plans/` → `.zcode/plans/` (reference plans)
+- `context/` → `.zcode/context/` (auto-injected + on-demand project context — this is what makes the default `instructions[]` entry `.zcode/context/git-context.md` resolve)
+
+`artifacts/` and `dcp-prompts/` are bundled but stay reference-only (the agent reads them via filesystem / `srcwalk_read`; the project creates its own artifacts on demand).
 
 ## Rebuilding the MCP bundle (developers)
 
@@ -142,8 +152,8 @@ Add an `NPM_TOKEN` secret to the GitHub repo (Settings → Secrets and variables
 #    and the test suite is green locally: npm test && npm run test:smoke
 # 2. Commit + push the version bump
 # 3. Tag with the matching v<prefix> and push the tag
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 The workflow refuses to publish if the tag version does not equal `package.json` `version`. Manual fallback: run the `release` workflow from the Actions tab (`workflow_dispatch`).
