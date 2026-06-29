@@ -83,6 +83,24 @@ test('enablePlugins sets all plugins true in cli/config.json without wiping exis
 
 test('no file is written outside the sandbox home', () => {
   const home = sandboxHome()
-  packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
-  assert.ok(!fs.existsSync(path.join(os.homedir(), '.zcode', 'cli', 'plugins', 'cache', 'zcode-starterkit')))
+  // Canary: a separate temp dir pointed at by ZCODE_HOME. If
+  // packageBaselineAsPlugins ever falls back to resolveZcodeHome() (env-based)
+  // instead of the zcodeHome param, it would write here and the assertion
+  // catches the regression. Using a temp canary rather than os.homedir()/.zcode
+  // so the assertion is not polluted by a real starterkit install on the dev or
+  // CI machine (the previous sentinel false-positived once the package was
+  // actually installed globally).
+  const canary = sandboxHome()
+  const prevZcodeHome = process.env.ZCODE_HOME
+  process.env.ZCODE_HOME = canary
+  try {
+    packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  } finally {
+    if (prevZcodeHome === undefined) delete process.env.ZCODE_HOME
+    else process.env.ZCODE_HOME = prevZcodeHome
+  }
+  assert.ok(
+    !fs.existsSync(path.join(canary, 'cli', 'plugins', 'cache', 'zcode-starterkit')),
+    'packageBaselineAsPlugins must write only to the zcodeHome param, not to ZCODE_HOME',
+  )
 })
