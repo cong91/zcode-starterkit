@@ -25,7 +25,7 @@ export const CORE_PLUGIN_NAME = 'core'
 export const AGENTS_PLUGIN_NAME = 'agents-config'
 export const MCP_TOOLS_PLUGIN_NAME = 'mcp-tools'
 export const HOOKS_PLUGIN_NAME = 'hooks'
-export const PLUGIN_VERSION = '1.1.2'
+export const PLUGIN_VERSION = '1.1.3'
 
 // ZCode layout under ZCODE_HOME
 export const ZCODE_CLI_ROOT = path.join(ZCODE_HOME, 'cli')

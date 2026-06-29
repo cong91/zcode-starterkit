@@ -1,4 +1,5 @@
 ---
+name: painter
 description: Image generation and editing specialist for mockups, icons, and visual assets
 mode: subagent
 temperature: 0.6

@@ -1,4 +1,5 @@
 ---
+name: plan
 description: Planning agent for architecture, decomposition, and executable implementation plans
 mode: primary
 temperature: 0.2

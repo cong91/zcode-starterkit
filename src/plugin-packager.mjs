@@ -286,9 +286,17 @@ export function registerInstalledPlugins({ zcodeHome, packaged, backupRoot = nul
   // load even though installed_plugins.json lists it. The desktop app's host
   // loader (readInstalledPluginRoots) is lenient and only reads
   // id/marketplace/installPath, so the extra fields are harmless there.
+  //
+  // `id` MUST be the qualified `${name}@${marketplace}` form (not the bare
+  // plugin name) because the agent loader (discoverPluginAgents / hte in
+  // out/host/index.js) looks the plugin up in config.plugins.enabledPlugins
+  // by `entry.id`, and those keys are qualified (e.g. "core@zcode-starterkit").
+  // A bare id ("core") never matches, so every plugin agent is skipped and
+  // no agents load. Command discovery (resolvePluginCommandRootDescriptors)
+  // qualifies from manifest.name + marketplace itself, so it is unaffected.
   const installedAt = new Date().toISOString()
   const buildEntry = (name, pluginDir) => ({
-    id: name,
+    id: `${name}@${MARKETPLACE_NAME}`,
     name,
     marketplace: MARKETPLACE_NAME,
     version: PLUGIN_VERSION,

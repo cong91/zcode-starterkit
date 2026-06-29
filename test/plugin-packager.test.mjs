@@ -133,7 +133,7 @@ test('registerInstalledPlugins writes 4 entries with absolute installPath + mark
   const entries = starterkitEntries(reg)
   assert.equal(entries.length, 4, 'must register exactly 4 starterkit plugins')
   const ids = entries.map((e) => e.id).sort()
-  assert.deepEqual(ids, ['agents-config', 'core', 'hooks', 'mcp-tools'])
+  assert.deepEqual(ids, ['agents-config@zcode-starterkit', 'core@zcode-starterkit', 'hooks@zcode-starterkit', 'mcp-tools@zcode-starterkit'])
   for (const e of entries) {
     assert.equal(e.marketplace, MARKETPLACE_NAME)
     assert.ok(path.isAbsolute(e.installPath), `installPath must be absolute, got ${e.installPath}`)
@@ -144,7 +144,8 @@ test('registerInstalledPlugins writes 4 entries with absolute installPath + mark
     // accepts entries carrying the full 7-field schema — entries missing any
     // of name/version/installedAt/scope are silently dropped, so the plugin's
     // skills/commands never load even though installed_plugins.json lists it.
-    assert.equal(e.name, e.id, `entry name must equal id for ${e.id}`)
+    assert.equal(e.name, e.id.split('@')[0], `entry name must match id prefix for ${e.id}`)
+    assert.equal(e.id, `${e.name}@${e.marketplace}`, `entry id must be qualified name@marketplace for ${e.id}`)
     assert.equal(e.version, PLUGIN_VERSION, `entry version must be PLUGIN_VERSION for ${e.id}`)
     assert.equal(typeof e.installedAt, 'string', `installedAt must be an ISO string for ${e.id}`)
     assert.ok(!Number.isNaN(Date.parse(e.installedAt)), `installedAt must parse for ${e.id}`)

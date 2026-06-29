@@ -1,4 +1,5 @@
 ---
+name: scout
 description: External research specialist for library docs and patterns
 mode: subagent
 temperature: 0.2

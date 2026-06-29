@@ -1,4 +1,5 @@
 ---
+name: review
 description: Read-only code review and debugging specialist for correctness, security, and regressions
 mode: subagent
 temperature: 0.1
