@@ -25,7 +25,7 @@ export const CORE_PLUGIN_NAME = 'core'
 export const AGENTS_PLUGIN_NAME = 'agents-config'
 export const MCP_TOOLS_PLUGIN_NAME = 'mcp-tools'
 export const HOOKS_PLUGIN_NAME = 'hooks'
-export const PLUGIN_VERSION = '0.1.0'
+export const PLUGIN_VERSION = '1.0.0'
 
 // ZCode layout under ZCODE_HOME
 export const ZCODE_CLI_ROOT = path.join(ZCODE_HOME, 'cli')
@@ -47,29 +47,11 @@ export const ZCODE_BACKUP_DIR = path.join(ZCODE_STATE_ROOT, 'backups')
 export const ZCODE_INSTALL_LOG_DIR = path.join(ZCODE_STATE_ROOT, 'logs')
 export const ZCODE_MANIFEST_DIR = path.join(ZCODE_STATE_ROOT, 'manifests')
 
+// Shared starterkit integration state (CodeGraph / WebClaw enablement records).
+// Mirrors opencode-starterkit's GLOBAL_STARTERKIT_STATE_PATH so codegraph.mjs
+// and webclaw.mjs can read/write the same single JSON record.
+export const GLOBAL_STARTERKIT_STATE_PATH = path.join(ZCODE_STATE_ROOT, 'starterkit-state.json')
+
 // CLI shims (kept under ~/.local/bin, OS-agnostic)
 export const GLOBAL_BIN_DIR = path.join(HOME, '.local', 'bin')
-export const GLOBAL_ZCS_SHIM = path.join(GLOBAL_BIN_DIR, 'zcs')
 export const GLOBAL_STARTERKIT_SHIM = path.join(GLOBAL_BIN_DIR, 'zcode-starterkit')
-
-export const PROJECT_MEMORY_FILES = ['project.md', 'state.md', 'roadmap.md', 'tech-stack.md', 'user.md', 'gotchas.md']
-
-export const ACTION_OPTIONS = [
-  'Initialize project',
-  'Config',
-  'Upgrade',
-  'List agents',
-  'Add agent',
-  'List skills',
-  'Add skill',
-  'Status',
-  'Doctor',
-  'Exit',
-]
-
-export const MODEL_PRESETS = {
-  free: { label: 'Free models', model: null },
-  recommended: { label: 'Recommended models', model: null },
-  custom: { label: 'Custom', model: null },
-  skip: { label: 'Skip', model: null },
-}

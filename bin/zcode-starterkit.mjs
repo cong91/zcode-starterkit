@@ -21,7 +21,7 @@ async function main() {
     skipShims = true
   }
 
-  await installGlobal({ cwd: process.cwd(), zcodeHome, skipShims })
+  await installGlobal({ cwd: process.cwd(), zcodeHome, skipShims, options: cli.options })
   process.exit(0)
 }
 

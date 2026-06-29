@@ -148,14 +148,6 @@
       },
       "timeout": 120000,
       "type": "local"
-    },
-    "webclaw": {
-      "command": [
-        "webclaw-mcp"
-      ],
-      "enabled": true,
-      "timeout": 120000,
-      "type": "local"
     }
   },
   "permission": {

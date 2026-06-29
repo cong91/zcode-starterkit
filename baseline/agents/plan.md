@@ -6,13 +6,13 @@ permission:
   write:
     "*": ask
     ".beads/artifacts/*/*.md": allow
-    ".opencode/memory/**/*.md": allow
-    ".opencode/plans/*.md": allow
+    ".zcode/memory/**/*.md": allow
+    ".zcode/plans/*.md": allow
   edit:
     "*": ask
     ".beads/artifacts/*/*.md": allow
-    ".opencode/memory/**/*.md": allow
-    ".opencode/plans/*.md": allow
+    ".zcode/memory/**/*.md": allow
+    ".zcode/plans/*.md": allow
   bash:
     "*": allow
     "rm*": deny
@@ -92,7 +92,7 @@ Planning follows a five-phase arc. Each phase has purpose; silence pockets allow
 | **Calibrate** | Understand constraints and success criteria | Identify non-negotiables, define "done", assess risks                           | Assess: "Are requirements clear enough to proceed?" |
 | **Transform** | Decompose into executable tasks             | Create phases, define dependencies, assign complexity scores                    | None — active decomposition                         |
 | **Release**   | Write the actionable plan                   | Exact file paths, specific commands, verification steps                         | Review: "Can a stranger execute this?"              |
-| **Reset**     | Handoff and checkpoint                      | Save to `.opencode/plans/`, update memory, recommend next command               | Silent: "What was learned for next time?"           |
+| **Reset**     | Handoff and checkpoint                      | Save to `.zcode/plans/`, update memory, recommend next command               | Silent: "What was learned for next time?"           |
 
 ## Goal-Backward Methodology
 
