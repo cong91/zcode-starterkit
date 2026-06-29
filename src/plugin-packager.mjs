@@ -7,8 +7,12 @@ import {
   MCP_TOOLS_PLUGIN_NAME,
   HOOKS_PLUGIN_NAME,
   PLUGIN_VERSION,
+  INSTALLED_PLUGINS_FILENAME,
 } from './constants.mjs'
-import { copyDirRecursive, ensureDir, exists, writeText } from './fs-utils.mjs'
+import { copyDirRecursive, ensureDir, exists, writeText, backupIfExists } from './fs-utils.mjs'
+import { readJson, writeJson } from './config-merge.mjs'
+import { removeStarterkitCodegraphMcpConfig } from './codegraph.mjs'
+import { removeStarterkitWebclawMcpConfig } from './webclaw.mjs'
 
 function pluginJson({ name, description, withSkills, withCommands }) {
   const obj = {
@@ -200,4 +204,118 @@ export function enablePlugins({ zcodeHome }) {
   ensureDir(path.dirname(cliConfigPath))
   writeText(cliConfigPath, `${JSON.stringify(cfg, null, 2)}\n`)
   return { cliConfigPath, enabled: cfg.plugins.enabledPlugins }
+}
+
+// --- installed_plugins.json registry ---
+// ZCode's plugin loader discovers plugin roots from three sources only:
+//   1. config.plugins.dirs (inline)
+//   2. a hardcoded scan of cache/zcode-plugins-official/*/*
+//   3. installed_plugins.json  (this registry)
+// Plugins the starterkit copies into cache/zcode-starterkit/*/* are NOT scanned,
+// so without a registry entry per plugin, none of their skills/commands/
+// mcpServers/hooks ever load. Each entry must carry an absolute installPath
+// (the loader rejects relative paths via path.isAbsolute).
+function registryPathFor(zcodeHome) {
+  return path.join(zcodeHome, 'cli', 'plugins', INSTALLED_PLUGINS_FILENAME)
+}
+
+function readRegistry(registryPath) {
+  if (!exists(registryPath)) return { plugins: [] }
+  try {
+    const parsed = readJson(registryPath)
+    if (parsed && Array.isArray(parsed.plugins)) return { plugins: parsed.plugins }
+    return { plugins: [] }
+  } catch {
+    // Corrupt or unreadable registry: start fresh (a backup was already taken).
+    return { plugins: [] }
+  }
+}
+
+export function registerInstalledPlugins({ zcodeHome, packaged, backupRoot = null }) {
+  const registryPath = registryPathFor(zcodeHome)
+  const current = readRegistry(registryPath)
+  // Preserve entries from other marketplaces; replace any stale starterkit
+  // entries (e.g. from a previous version) so re-install never duplicates.
+  const preserved = current.plugins.filter((e) => e && e.marketplace !== MARKETPLACE_NAME)
+  const entries = [
+    { id: packaged.coreName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.corePluginDir) },
+    { id: packaged.agentsName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.agentsPluginDir) },
+    { id: packaged.mcpToolsName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.mcpToolsPluginDir) },
+    { id: packaged.hooksName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.hooksPluginDir) },
+  ]
+  const next = { plugins: [...preserved, ...entries] }
+  backupIfExists(registryPath, { backupRoot })
+  ensureDir(path.dirname(registryPath))
+  writeJson(registryPath, next)
+  return { registryPath, registered: entries.length, preserved: preserved.length }
+}
+
+// Remove every trace of the starterkit from a ZCode home: registry entries,
+// enabledPlugins keys, the cached plugin dirs, the marketplace dir, and the
+// starterkit-managed MCP entries (codegraph/webclaw) in v2/config.json. Other
+// marketplaces' entries and config are preserved. Safe to run when nothing is
+// installed.
+function rmBestEffort(targetPath) {
+  if (!exists(targetPath)) return false
+  try { fs.rmSync(targetPath, { recursive: true, force: true }); return true }
+  catch { return false }
+}
+
+export function uninstallStarterkit({ zcodeHome, backupRoot = null }) {
+  const pluginsRoot = path.join(zcodeHome, 'cli', 'plugins')
+  const registryPath = registryPathFor(zcodeHome)
+  const removed = { registryEntries: 0, cacheDir: null, marketplaceDir: null, enabledPluginKeys: [], mcpEntries: [] }
+
+  // 1. Registry: drop starterkit entries, preserve the rest.
+  if (exists(registryPath)) {
+    const reg = readRegistry(registryPath)
+    const before = reg.plugins.length
+    reg.plugins = reg.plugins.filter((e) => e && e.marketplace !== MARKETPLACE_NAME)
+    removed.registryEntries = before - reg.plugins.length
+    backupIfExists(registryPath, { backupRoot })
+    writeJson(registryPath, reg)
+  }
+
+  // 2. enabledPlugins: drop *@zcode-starterkit keys, preserve others.
+  const cliConfigPath = path.join(zcodeHome, 'cli', 'config.json')
+  if (exists(cliConfigPath)) {
+    const cfg = readCliConfig({ zcodeHome })
+    if (cfg.plugins?.enabledPlugins) {
+      for (const key of Object.keys(cfg.plugins.enabledPlugins)) {
+        if (key.endsWith(`@${MARKETPLACE_NAME}`)) {
+          delete cfg.plugins.enabledPlugins[key]
+          removed.enabledPluginKeys.push(key)
+        }
+      }
+      backupIfExists(cliConfigPath, { backupRoot })
+      writeText(cliConfigPath, `${JSON.stringify(cfg, null, 2)}\n`)
+    }
+  }
+
+  // 3. Cache + marketplace dirs (best-effort; never throw if missing).
+  const cacheDir = path.join(pluginsRoot, 'cache', MARKETPLACE_NAME)
+  if (rmBestEffort(cacheDir)) removed.cacheDir = cacheDir
+  const marketplaceDir = path.join(pluginsRoot, 'marketplaces', MARKETPLACE_NAME)
+  if (rmBestEffort(marketplaceDir)) removed.marketplaceDir = marketplaceDir
+
+  // 4. v2/config.json: strip starterkit-managed MCP entries (codegraph/webclaw).
+  const runtimeConfigPath = path.join(zcodeHome, 'v2', 'config.json')
+  if (exists(runtimeConfigPath)) {
+    try {
+      const cfg = readJson(runtimeConfigPath)
+      const withoutCodegraph = removeStarterkitCodegraphMcpConfig(cfg)
+      const cleaned = removeStarterkitWebclawMcpConfig(withoutCodegraph)
+      if (cleaned.mcp) {
+        for (const name of ['codegraph', 'webclaw']) {
+          if (cfg.mcp?.[name] && !cleaned.mcp[name]) removed.mcpEntries.push(name)
+        }
+      }
+      backupIfExists(runtimeConfigPath, { backupRoot })
+      writeJson(runtimeConfigPath, cleaned)
+    } catch {
+      // Leave an unreadable runtime config untouched rather than guessing.
+    }
+  }
+
+  return { zcodeHome, removed }
 }

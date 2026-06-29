@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { installGlobal } from '../src/install-global.mjs'
+import { PLUGIN_VERSION } from '../src/constants.mjs'
 
 function freshSandbox() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'zcode-sandbox-'))
@@ -16,8 +17,8 @@ test('sandbox install produces plugins, marketplace, enabledPlugins, merged conf
   // unit tests; sandbox tests only verify plugin packaging + config merge.
   await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodegraph: true, skipWebclaw: true } })
 
-  const coreDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', '1.0.0')
-  const agentsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'agents-config', '1.0.0')
+  const coreDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', PLUGIN_VERSION)
+  const agentsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'agents-config', PLUGIN_VERSION)
 
   assert.ok(fs.existsSync(path.join(coreDir, '.zcode-plugin', 'plugin.json')), 'core plugin.json missing')
   assert.ok(fs.existsSync(path.join(coreDir, 'skills')), 'core skills missing')
@@ -35,14 +36,26 @@ test('sandbox install produces plugins, marketplace, enabledPlugins, merged conf
   assert.equal(cli.plugins.enabledPlugins['mcp-tools@zcode-starterkit'], true)
   assert.equal(cli.plugins.enabledPlugins['hooks@zcode-starterkit'], true)
 
+  // installed_plugins.json registry: ZCode's loader only discovers plugin roots
+  // from inline dirs, the hardcoded official cache scan, and this registry file.
+  // Without it, the 4 starterkit plugins are copied to cache but never loaded.
+  const reg = JSON.parse(fs.readFileSync(path.join(home, 'cli', 'plugins', 'installed_plugins.json'), 'utf8'))
+  const skEntries = (reg.plugins || []).filter((e) => e.marketplace === 'zcode-starterkit')
+  assert.equal(skEntries.length, 4, 'install must register 4 starterkit plugins in installed_plugins.json')
+  for (const e of skEntries) {
+    assert.ok(path.isAbsolute(e.installPath), `installPath must be absolute, got ${e.installPath}`)
+    assert.ok(fs.existsSync(path.join(e.installPath, '.zcode-plugin', 'plugin.json')),
+      `registered installPath ${e.installPath} must point at a real plugin dir`)
+  }
+
   // mcp-tools plugin ships a bundle + mcpServers declaration
-  const mcpDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'mcp-tools', '1.0.0')
+  const mcpDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'mcp-tools', PLUGIN_VERSION)
   assert.ok(fs.existsSync(path.join(mcpDir, 'dist', 'mcp', 'server.js')), 'mcp-tools bundle must be installed')
   const mcpPluginJson = JSON.parse(fs.readFileSync(path.join(mcpDir, '.zcode-plugin', 'plugin.json'), 'utf8'))
   assert.ok(mcpPluginJson.mcpServers, 'mcp-tools plugin.json must declare mcpServers')
 
   // hooks plugin ships hook scripts + hooks.json
-  const hooksDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'hooks', '1.0.0')
+  const hooksDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'hooks', PLUGIN_VERSION)
   assert.ok(fs.existsSync(path.join(hooksDir, 'hooks', 'hooks.json')), 'hooks.json must be installed')
   assert.ok(fs.existsSync(path.join(hooksDir, 'hooks', 'guard.mjs')), 'guard hook must be installed')
 
@@ -86,8 +99,8 @@ test('sandbox install writes only under the sandbox home, never the real ~/.zcod
 test('sandbox install copies ~130+ skills and ~24+ commands', async () => {
   const home = freshSandbox()
   await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodegraph: true, skipWebclaw: true } })
-  const skillsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', '1.0.0', 'skills')
-  const commandsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', '1.0.0', 'commands')
+  const skillsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', PLUGIN_VERSION, 'skills')
+  const commandsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', PLUGIN_VERSION, 'commands')
   const skillCount = fs.readdirSync(skillsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length
   const commandCount = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md')).length
   assert.ok(skillCount >= 115, `expected ~119 curated skills (13 overlap with native superpowers removed), got ${skillCount}`)

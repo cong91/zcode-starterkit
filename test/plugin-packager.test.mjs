@@ -3,10 +3,20 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, readCliConfig } from '../src/plugin-packager.mjs'
+import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, registerInstalledPlugins, uninstallStarterkit, readCliConfig } from '../src/plugin-packager.mjs'
+import { MARKETPLACE_NAME } from '../src/constants.mjs'
 
 function sandboxHome() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'zcode-pkg-'))
+}
+
+function readInstalledPlugins(home) {
+  const p = path.join(home, 'cli', 'plugins', 'installed_plugins.json')
+  return JSON.parse(fs.readFileSync(p, 'utf8'))
+}
+
+function starterkitEntries(reg) {
+  return (reg.plugins || []).filter((e) => e.marketplace === MARKETPLACE_NAME)
 }
 
 test('packageBaselineAsPlugins creates core + agents-config plugin dirs with plugin.json', () => {
@@ -103,4 +113,132 @@ test('no file is written outside the sandbox home', () => {
     !fs.existsSync(path.join(canary, 'cli', 'plugins', 'cache', 'zcode-starterkit')),
     'packageBaselineAsPlugins must write only to the zcodeHome param, not to ZCODE_HOME',
   )
+})
+
+// --- installed_plugins.json registry ---
+// ZCode's plugin loader (readInstalledPluginRoots in out/host/index.js) only
+// discovers plugin roots from three sources: inline dirs, the hardcoded
+// `cache/zcode-plugins-official/*/*` scan, and `installed_plugins.json`. The
+// starterkit writes to `cache/zcode-starterkit/*/*` (not scanned) so it MUST
+// also register an entry per plugin in installed_plugins.json or none of its
+// skills/commands/MCP-tools/hooks load. installPath must be absolute (the
+// loader rejects relative paths via path.isAbsolute).
+
+test('registerInstalledPlugins writes 4 entries with absolute installPath + marketplace=zcode-starterkit', () => {
+  const home = sandboxHome()
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  const result = registerInstalledPlugins({ zcodeHome: home, packaged })
+
+  const reg = readInstalledPlugins(home)
+  const entries = starterkitEntries(reg)
+  assert.equal(entries.length, 4, 'must register exactly 4 starterkit plugins')
+  const ids = entries.map((e) => e.id).sort()
+  assert.deepEqual(ids, ['agents-config', 'core', 'hooks', 'mcp-tools'])
+  for (const e of entries) {
+    assert.equal(e.marketplace, MARKETPLACE_NAME)
+    assert.ok(path.isAbsolute(e.installPath), `installPath must be absolute, got ${e.installPath}`)
+    // installPath must point at a real plugin dir carrying a .zcode-plugin/plugin.json
+    assert.ok(fs.existsSync(path.join(e.installPath, '.zcode-plugin', 'plugin.json')),
+      `installPath ${e.installPath} must contain .zcode-plugin/plugin.json`)
+  }
+  assert.equal(result.registered, 4)
+  assert.equal(result.preserved, 0)
+})
+
+test('registerInstalledPlugins is idempotent (run twice -> 4 entries, not 8)', () => {
+  const home = sandboxHome()
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  registerInstalledPlugins({ zcodeHome: home, packaged })
+  registerInstalledPlugins({ zcodeHome: home, packaged })
+
+  const entries = starterkitEntries(readInstalledPlugins(home))
+  assert.equal(entries.length, 4, 'second register must replace, not duplicate')
+})
+
+test('registerInstalledPlugins preserves entries from other marketplaces', () => {
+  const home = sandboxHome()
+  const pluginsRoot = path.join(home, 'cli', 'plugins')
+  fs.mkdirSync(pluginsRoot, { recursive: true })
+  // Simulate an official/plugin entry that already lives in the registry.
+  const otherPath = path.join(pluginsRoot, 'cache', 'zcode-plugins-official', 'superpowers', '5.1.0')
+  fs.mkdirSync(otherPath, { recursive: true })
+  fs.writeFileSync(path.join(pluginsRoot, 'installed_plugins.json'),
+    JSON.stringify({ plugins: [{ id: 'superpowers', marketplace: 'zcode-plugins-official', installPath: otherPath }] }))
+
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  const result = registerInstalledPlugins({ zcodeHome: home, packaged })
+
+  const reg = readInstalledPlugins(home)
+  assert.equal(starterkitEntries(reg).length, 4)
+  const other = reg.plugins.find((e) => e.marketplace === 'zcode-plugins-official')
+  assert.ok(other, 'non-starterkit entry must be preserved')
+  assert.equal(other.id, 'superpowers')
+  assert.equal(other.installPath, otherPath)
+  assert.equal(result.preserved, 1)
+})
+
+test('registerInstalledPlugins removes stale starterkit entries on re-install', () => {
+  const home = sandboxHome()
+  const pluginsRoot = path.join(home, 'cli', 'plugins')
+  fs.mkdirSync(pluginsRoot, { recursive: true })
+  // Seed a stale starterkit entry pointing at a no-longer-valid path.
+  fs.writeFileSync(path.join(pluginsRoot, 'installed_plugins.json'),
+    JSON.stringify({ plugins: [
+      { id: 'core', marketplace: MARKETPLACE_NAME, installPath: path.join(pluginsRoot, 'stale', 'core', '0.9.0') },
+      { id: 'superpowers', marketplace: 'zcode-plugins-official', installPath: '/opt/superpowers' },
+    ] }))
+
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  registerInstalledPlugins({ zcodeHome: home, packaged })
+
+  const reg = readInstalledPlugins(home)
+  const sk = starterkitEntries(reg)
+  assert.equal(sk.length, 4, 'stale starterkit entries must be replaced, not appended')
+  assert.ok(!sk.some((e) => e.installPath.includes('0.9.0')), 'stale 0.9.0 path must be gone')
+  // Other-marketplace entry preserved
+  assert.ok(reg.plugins.find((e) => e.id === 'superpowers'))
+})
+
+test('uninstallStarterkit removes starterkit entries + cache + enabledPlugins, preserves other marketplaces', () => {
+  const home = sandboxHome()
+  const pluginsRoot = path.join(home, 'cli', 'plugins')
+  // Seed an official entry alongside the starterkit install.
+  const officialPath = path.join(pluginsRoot, 'cache', 'zcode-plugins-official', 'superpowers', '5.1.0')
+  fs.mkdirSync(officialPath, { recursive: true })
+
+  const packaged = packageBaselineAsPlugins({ zcodeHome: home, baselineRoot: path.resolve('baseline') })
+  registerMarketplace({ zcodeHome: home, packaged })
+  enablePlugins({ zcodeHome: home })
+  registerInstalledPlugins({ zcodeHome: home, packaged })
+  // Inject the official entry into the registry + enabledPlugins.
+  const regPath = path.join(pluginsRoot, 'installed_plugins.json')
+  const reg = JSON.parse(fs.readFileSync(regPath, 'utf8'))
+  reg.plugins.push({ id: 'superpowers', marketplace: 'zcode-plugins-official', installPath: officialPath })
+  fs.writeFileSync(regPath, JSON.stringify(reg))
+  const cliPath = path.join(home, 'cli', 'config.json')
+  const cli = JSON.parse(fs.readFileSync(cliPath, 'utf8'))
+  cli.plugins.enabledPlugins['superpowers@zcode-plugins-official'] = true
+  fs.writeFileSync(cliPath, JSON.stringify(cli))
+
+  uninstallStarterkit({ zcodeHome: home })
+
+  // Registry: starterkit entries gone, official preserved
+  const regAfter = JSON.parse(fs.readFileSync(regPath, 'utf8'))
+  assert.equal(starterkitEntries(regAfter).length, 0)
+  assert.ok(regAfter.plugins.find((e) => e.id === 'superpowers'), 'official registry entry preserved')
+  // Cache + marketplace dirs removed
+  assert.ok(!fs.existsSync(path.join(pluginsRoot, 'cache', 'zcode-starterkit')), 'starterkit cache dir removed')
+  assert.ok(!fs.existsSync(path.join(pluginsRoot, 'marketplaces', 'zcode-starterkit')), 'starterkit marketplace dir removed')
+  // enabledPlugins: starterkit keys gone, official preserved
+  const cliAfter = JSON.parse(fs.readFileSync(cliPath, 'utf8'))
+  for (const key of ['core', 'agents-config', 'mcp-tools', 'hooks']) {
+    assert.equal(cliAfter.plugins.enabledPlugins[`${key}@${MARKETPLACE_NAME}`], undefined)
+  }
+  assert.equal(cliAfter.plugins.enabledPlugins['superpowers@zcode-plugins-official'], true, 'official enabledPlugins preserved')
+})
+
+test('uninstallStarterkit is safe when nothing is installed', () => {
+  const home = sandboxHome()
+  // No registry, no cache, no config — must not throw.
+  assert.doesNotThrow(() => uninstallStarterkit({ zcodeHome: home }))
 })

@@ -21,6 +21,16 @@ See the install flags section below for opt-out / fail-fast flags.
 zcode-starterkit --sandbox --skip-codegraph --skip-webclaw
 ```
 
+## Uninstall
+
+Remove everything the starterkit installed from `~/.zcode`:
+
+```bash
+zcode-starterkit uninstall
+```
+
+This drops the 4 starterkit entries from `installed_plugins.json`, the `*@zcode-starterkit` keys from `cli/config.json` `enabledPlugins`, the cached plugin dirs under `cache/zcode-starterkit/`, the `marketplaces/zcode-starterkit/` dir, and the starterkit-managed `codegraph`/`webclaw` MCP entries from `v2/config.json`. Entries and config from **other** marketplaces (e.g. `zcode-plugins-official`) are preserved. Run `uninstall` then `install` to migrate cleanly across a version bump.
+
 ## Install flags
 
 | Flag | Effect |
@@ -36,7 +46,9 @@ zcode-starterkit --sandbox --skip-codegraph --skip-webclaw
 
 ## What is installed
 
-Four ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zcode/cli/config.json`:
+Four ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zcode/cli/config.json` and registered in `~/.zcode/cli/plugins/installed_plugins.json`:
+
+> **Plugin discovery:** ZCode's plugin loader only discovers plugin roots from three sources — inline `config.plugins.dirs`, a hardcoded scan of `cache/zcode-plugins-official/*/*`, and the `installed_plugins.json` registry. Plugins placed under `cache/zcode-starterkit/*/*` are **not** auto-scanned, so the installer writes one registry entry per plugin (with an absolute `installPath`) or none of the skills/commands/MCP-tools/hooks would ever load. The registry is merged in place: re-install replaces stale starterkit entries and preserves entries from other marketplaces.
 
 > **Curated for ZCode (not a raw port):** the 13 workflow skills that overlap with ZCode's native `superpowers@zcode-plugins-official` plugin (brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, executing-plans, etc.) were **removed** so ZCode uses the native versions. OpenCode-only model/provider config was **stripped** so ZCode uses its native GLM provider. All `.opencode` path refs in skills/commands were rewritten to `.zcode`, and OpenCode-specific runtime refs (DCP, `opencode run`, plugin TS paths) were adapted to ZCode equivalents.
 
@@ -130,8 +142,8 @@ Add an `NPM_TOKEN` secret to the GitHub repo (Settings → Secrets and variables
 #    and the test suite is green locally: npm test && npm run test:smoke
 # 2. Commit + push the version bump
 # 3. Tag with the matching v<prefix> and push the tag
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 The workflow refuses to publish if the tag version does not equal `package.json` `version`. Manual fallback: run the `release` workflow from the Actions tab (`workflow_dispatch`).

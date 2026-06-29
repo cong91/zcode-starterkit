@@ -25,6 +25,7 @@ export function printHelp(binName) {
   console.log(`${binName} <command>\n`)
   console.log('Commands:')
   console.log(`  ${binName} install    Install baseline as ZCode plugins into ZCODE_HOME (default ~/.zcode) and merge config into v2/config.json`)
+  console.log(`  ${binName} uninstall  Remove all zcode-starterkit plugins, registry entries, cache, marketplace, enabledPlugins keys, and starterkit-managed MCP config (codegraph/webclaw)`)
   console.log('  --help, -h      Show help')
   console.log('\nGlobal install flags:')
   console.log('  --sandbox           Install into <repo>/.sandbox/.zcode instead of real ~/.zcode (safe test)')

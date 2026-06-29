@@ -8,7 +8,7 @@ import {
 } from './constants.mjs'
 import { backupIfExists, ensureDir, exists, writeText } from './fs-utils.mjs'
 import { readJson, writeJson, writeMergeManifest, mergeZcodeConfigAdditive, normalizeZcodeConfig } from './config-merge.mjs'
-import { packageBaselineAsPlugins, registerMarketplace, enablePlugins } from './plugin-packager.mjs'
+import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, registerInstalledPlugins } from './plugin-packager.mjs'
 import { detectCodegraphCli, getCodegraphInstallCommand, installCodegraphCli, installCodegraphGitHooks, mergeCodegraphMcpConfig, removeStarterkitCodegraphMcpConfig, writeCodegraphIntegrationState } from './codegraph.mjs'
 import { detectWebclawCli, getWebclawInstallCommand, installWebclawCli, mergeWebclawMcpConfig, removeStarterkitWebclawMcpConfig, writeWebclawIntegrationState } from './webclaw.mjs'
 
@@ -76,7 +76,7 @@ function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodegraph = false, code
   return { merged: true, globalPath, manifestPath, normalizedChanges: normalized.changes, providerNames: normalized.providerNames }
 }
 
-function buildInstallLog({ cwd, zcodeHome, packaged, mergeResult, codegraphResult, webclawResult, hookResult }) {
+function buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult, codegraphResult, webclawResult, hookResult }) {
   return [
     `[zcode-starterkit] install started: ${new Date().toISOString()}`,
     `[zcode-starterkit] cwd=${cwd}`,
@@ -86,6 +86,7 @@ function buildInstallLog({ cwd, zcodeHome, packaged, mergeResult, codegraphResul
     `[zcode-starterkit] agentsPluginDir=${packaged.agentsPluginDir}`,
     `[zcode-starterkit] mcpToolsPluginDir=${packaged.mcpToolsPluginDir}`,
     `[zcode-starterkit] hooksPluginDir=${packaged.hooksPluginDir}`,
+    registryResult ? `[zcode-starterkit] registered plugins=${registryResult.registered} preserved=${registryResult.preserved} at ${registryResult.registryPath}` : `[zcode-starterkit] registry=not-written`,
     mergeResult?.merged ? `[zcode-starterkit] merged config=${mergeResult.globalPath}` : `[zcode-starterkit] merge skipped=${mergeResult?.reason || 'unknown'}`,
     mergeResult?.manifestPath ? `[zcode-starterkit] merge manifest=${mergeResult.manifestPath}` : `[zcode-starterkit] merge manifest=none`,
     codegraphResult ? `[zcode-starterkit] codegraph=${JSON.stringify(codegraphResult)}` : `[zcode-starterkit] codegraph=not-checked`,
@@ -224,6 +225,10 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
   const packaged = packageBaselineAsPlugins({ zcodeHome, baselineRoot: ZCODE_STARTERKIT_BASELINE_ROOT })
   registerMarketplace({ zcodeHome, packaged })
   enablePlugins({ zcodeHome })
+  // Register the 4 plugins in installed_plugins.json. ZCode's loader only
+  // discovers plugin roots from inline dirs, the hardcoded official cache scan,
+  // and this registry — without it, the cached plugins never load.
+  const registryResult = registerInstalledPlugins({ zcodeHome, packaged, backupRoot: path.join(stateRoot, 'backups') })
 
   // Resolve CodeGraph + WebClaw integrations BEFORE the config merge so their
   // MCP entries can be added (or stripped) conditionally. Both auto-install by
@@ -251,11 +256,12 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
 
   const logDir = path.join(stateRoot, 'logs')
   const installLogPath = path.join(logDir, `install-${new Date().toISOString().replace(/[:.]/g, '-')}.log`)
-  writeText(installLogPath, buildInstallLog({ cwd, zcodeHome, packaged, mergeResult, codegraphResult, webclawResult, hookResult }))
+  writeText(installLogPath, buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult, codegraphResult, webclawResult, hookResult }))
 
   console.log(`[zcode-starterkit] Packaged plugins under ${path.dirname(packaged.corePluginDir)}`)
   console.log(`[zcode-starterkit] Registered marketplace zcode-starterkit`)
   console.log(`[zcode-starterkit] Enabled plugins in ${path.join(zcodeHome, 'cli', 'config.json')}`)
+  console.log(`[zcode-starterkit] Registered ${registryResult.registered} plugins in ${registryResult.registryPath} (preserved ${registryResult.preserved} other-marketplace entries)`)
   if (mergeResult.merged) {
     console.log(`[zcode-starterkit] Merged global config -> ${mergeResult.globalPath}`)
     if (mergeResult.manifestPath) console.log(`[zcode-starterkit] Wrote merge manifest -> ${mergeResult.manifestPath}`)

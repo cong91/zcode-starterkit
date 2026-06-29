@@ -25,7 +25,7 @@ export const CORE_PLUGIN_NAME = 'core'
 export const AGENTS_PLUGIN_NAME = 'agents-config'
 export const MCP_TOOLS_PLUGIN_NAME = 'mcp-tools'
 export const HOOKS_PLUGIN_NAME = 'hooks'
-export const PLUGIN_VERSION = '1.0.0'
+export const PLUGIN_VERSION = '1.1.0'
 
 // ZCode layout under ZCODE_HOME
 export const ZCODE_CLI_ROOT = path.join(ZCODE_HOME, 'cli')
@@ -33,6 +33,16 @@ export const ZCODE_PLUGINS_ROOT = path.join(ZCODE_CLI_ROOT, 'plugins')
 export const ZCODE_CACHE_ROOT = path.join(ZCODE_PLUGINS_ROOT, 'cache', MARKETPLACE_NAME)
 export const ZCODE_MARKETPLACE_DIR = path.join(ZCODE_PLUGINS_ROOT, 'marketplaces', MARKETPLACE_NAME)
 export const ZCODE_RUNTIME_CONFIG = path.join(ZCODE_HOME, 'v2', 'config.json')
+
+// installed_plugins.json is the registry ZCode's plugin loader reads to discover
+// plugin roots (out/host/index.js: readInstalledPluginRoots). Plugins placed in
+// cache/<marketplace>/ are NOT auto-scanned for arbitrary marketplaces — only
+// `zcode-plugins-official` is hardcoded-scanned. Every other marketplace must
+// register an entry here with an absolute installPath, or its skills/commands/
+// mcpServers/hooks never load. Keys must match the loader schema:
+//   { plugins: [{ id, marketplace, installPath }] }
+export const INSTALLED_PLUGINS_FILENAME = 'installed_plugins.json'
+export const ZCODE_INSTALLED_PLUGINS_PATH = path.join(ZCODE_PLUGINS_ROOT, INSTALLED_PLUGINS_FILENAME)
 
 export const ZCODE_CORE_PLUGIN_DIR = path.join(ZCODE_CACHE_ROOT, CORE_PLUGIN_NAME, PLUGIN_VERSION)
 export const ZCODE_AGENTS_PLUGIN_DIR = path.join(ZCODE_CACHE_ROOT, AGENTS_PLUGIN_NAME, PLUGIN_VERSION)
