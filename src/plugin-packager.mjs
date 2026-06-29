@@ -14,6 +14,14 @@ import { readJson, writeJson } from './config-merge.mjs'
 import { removeStarterkitCodegraphMcpConfig } from './codegraph.mjs'
 import { removeStarterkitWebclawMcpConfig } from './webclaw.mjs'
 
+// MCP server name for the starterkit-tools plugin (memory, codesearch, etc.).
+// Declared in the plugin manifest's mcpServers and wired into v2/config.json's
+// mcp section by install-global so ZCode actually spawns the server. Without
+// this config entry the plugin's mcpServers declaration is inert and the
+// memory tools (observation/memory-search) never register, so .zcode/memory.db
+// is never bootstrapped.
+export const STARTERKIT_TOOLS_MCP_NAME = 'zcode-starterkit-tools'
+
 function pluginJson({ name, description, withSkills, withCommands }) {
   const obj = {
     name,
@@ -138,7 +146,7 @@ function packageHooksPlugin({ hooksDir, baselineRoot }) {
 // Package the mcp-tools plugin: copy the prebuilt bundle + write plugin.json
 // with an mcpServers entry pointing at the cached server.js.
 function packageMcpToolsPlugin({ mcpDir, baselineRoot }) {
-  const serverName = 'zcode-starterkit-tools'
+  const serverName = STARTERKIT_TOOLS_MCP_NAME
   ensureDir(mcpDir)
   const srcServer = path.join(baselineRoot, 'mcp-tools', 'dist', 'mcp', 'server.js')
   if (!exists(srcServer)) {
@@ -170,6 +178,36 @@ function packageMcpToolsPlugin({ mcpDir, baselineRoot }) {
   // Claude-compatible .mcp.json at plugin root (some hosts read this too).
   writeText(path.join(mcpDir, '.mcp.json'), `${JSON.stringify({ mcpServers: pluginJsonObj.mcpServers }, null, 2)}\n`)
   return { serverName }
+}
+
+// Wire the starterkit-tools MCP server into v2/config.json's mcp section so
+// ZCode spawns it. The plugin manifest declares mcpServers, but ZCode's runtime
+// only spawns servers listed in config.json mcp{} — without this entry the
+// memory tools never register and .zcode/memory.db is never created.
+// serverPath must be absolute (path.join(mcpToolsPluginDir, 'dist/mcp/server.js')).
+export function mergeStarterkitToolsMcpConfig(config, { serverPath } = {}) {
+  const out = { ...(config || {}) }
+  const currentMcp = out.mcp && typeof out.mcp === 'object' && !Array.isArray(out.mcp) ? out.mcp : {}
+  const existing = currentMcp[STARTERKIT_TOOLS_MCP_NAME] && typeof currentMcp[STARTERKIT_TOOLS_MCP_NAME] === 'object' && !Array.isArray(currentMcp[STARTERKIT_TOOLS_MCP_NAME]) ? currentMcp[STARTERKIT_TOOLS_MCP_NAME] : {}
+  out.mcp = {
+    ...currentMcp,
+    [STARTERKIT_TOOLS_MCP_NAME]: {
+      ...existing,
+      command: ['node', serverPath],
+      enabled: true,
+      type: 'local',
+      timeout: 120000,
+    },
+  }
+  return out
+}
+
+export function removeStarterkitToolsMcpConfig(config) {
+  const out = { ...(config || {}) }
+  if (out.mcp && typeof out.mcp === 'object' && !Array.isArray(out.mcp)) {
+    delete out.mcp[STARTERKIT_TOOLS_MCP_NAME]
+  }
+  return out
 }
 
 export function registerMarketplace({ zcodeHome, packaged }) {
@@ -308,9 +346,10 @@ export function uninstallStarterkit({ zcodeHome, backupRoot = null }) {
     try {
       const cfg = readJson(runtimeConfigPath)
       const withoutCodegraph = removeStarterkitCodegraphMcpConfig(cfg)
-      const cleaned = removeStarterkitWebclawMcpConfig(withoutCodegraph)
+      const withoutWebclaw = removeStarterkitWebclawMcpConfig(withoutCodegraph)
+      const cleaned = removeStarterkitToolsMcpConfig(withoutWebclaw)
       if (cleaned.mcp) {
-        for (const name of ['codegraph', 'webclaw']) {
+        for (const name of ['codegraph', 'webclaw', STARTERKIT_TOOLS_MCP_NAME]) {
           if (cfg.mcp?.[name] && !cleaned.mcp[name]) removed.mcpEntries.push(name)
         }
       }

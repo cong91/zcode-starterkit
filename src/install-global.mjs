@@ -8,7 +8,7 @@ import {
 } from './constants.mjs'
 import { backupIfExists, ensureDir, exists, writeText } from './fs-utils.mjs'
 import { readJson, writeJson, writeMergeManifest, mergeZcodeConfigAdditive, normalizeZcodeConfig } from './config-merge.mjs'
-import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, registerInstalledPlugins } from './plugin-packager.mjs'
+import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, registerInstalledPlugins, mergeStarterkitToolsMcpConfig } from './plugin-packager.mjs'
 import { detectCodegraphCli, getCodegraphInstallCommand, installCodegraphCli, installCodegraphGitHooks, mergeCodegraphMcpConfig, removeStarterkitCodegraphMcpConfig, writeCodegraphIntegrationState } from './codegraph.mjs'
 import { detectWebclawCli, getWebclawInstallCommand, installWebclawCli, mergeWebclawMcpConfig, removeStarterkitWebclawMcpConfig, writeWebclawIntegrationState } from './webclaw.mjs'
 
@@ -46,7 +46,7 @@ function installCliShims({ platform = process.platform } = {}) {
   return specs.map((spec) => spec.shimPath)
 }
 
-function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodegraph = false, codegraphCommandPath = null, enableWebclaw = false, webclawCommandPath = null }) {
+function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodegraph = false, codegraphCommandPath = null, enableWebclaw = false, webclawCommandPath = null, mcpToolsPluginDir = null }) {
   const baselinePath = path.join(ZCODE_STARTERKIT_BASELINE_ROOT, 'config.json')
   const globalPath = path.join(zcodeHome, 'v2', 'config.json')
   if (!exists(baselinePath)) return { merged: false, reason: 'missing baseline/config.json' }
@@ -59,7 +59,13 @@ function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodegraph = false, code
   // entry is stripped so the agent never loads a missing MCP server.
   const withCodegraph = enableCodegraph ? mergeCodegraphMcpConfig(merged, { commandPath: codegraphCommandPath }) : removeStarterkitCodegraphMcpConfig(merged)
   const withOptionalMcp = enableWebclaw ? mergeWebclawMcpConfig(withCodegraph, { commandPath: webclawCommandPath }) : removeStarterkitWebclawMcpConfig(withCodegraph)
-  const normalized = normalizeZcodeConfig({ current, baseline, merged: withOptionalMcp })
+  // Wire the starterkit-tools MCP server (memory/codesearch) into config.json.
+  // The plugin manifest declares mcpServers, but ZCode only spawns servers
+  // listed in config.json mcp{} — without this the memory tools never load.
+  const withStarterkitTools = mcpToolsPluginDir
+    ? mergeStarterkitToolsMcpConfig(withOptionalMcp, { serverPath: path.join(mcpToolsPluginDir, 'dist', 'mcp', 'server.js') })
+    : withOptionalMcp
+  const normalized = normalizeZcodeConfig({ current, baseline, merged: withStarterkitTools })
   const backupDir = path.join(stateRoot, 'backups')
   backupIfExists(globalPath, { backupRoot: backupDir })
   ensureDir(path.dirname(globalPath)) // ensure ~/.zcode/v2 exists before writing config
@@ -248,6 +254,7 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
     codegraphCommandPath: codegraphResult.path || null,
     enableWebclaw: webclawResult.enabled,
     webclawCommandPath: webclawResult.path || null,
+    mcpToolsPluginDir: packaged.mcpToolsPluginDir,
   })
 
   // Shims install into the real ~/.local/bin (GLOBAL_BIN_DIR uses the real HOME).
