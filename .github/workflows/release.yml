@@ -1,0 +1,105 @@
+name: release
+
+# Publish zcode-starterkit to NPM when a version tag (v*) is pushed.
+# Tag version MUST match package.json "version" (e.g. v1.0.0 -> "1.0.0").
+# Manual fallback: workflow_dispatch lets you trigger a publish from the Actions tab.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate: run the full test suite + smoke before any publish. Publish only
+  # proceeds when every test variant is green.
+  test:
+    name: test (${{ matrix.os }} / node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['20.x']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # Root package has no dependencies (tests use node --test built-in + local
+      # src/ imports), so `npm install` is effectively a no-op. Run it anyway so
+      # the npm cache is warm and any future devDependencies are honored.
+      - name: Install root deps
+        run: npm install --ignore-scripts
+
+      - name: Run test suite
+        run: npm test
+
+      - name: Run smoke test
+        run: npm run test:smoke
+
+  # Publish: rebuild the mcp-tools bundle from src so the published dist is always
+  # fresh, then `npm publish` the root package to NPM.
+  publish:
+    name: publish to npm
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # id-token: write is required if you later enable `npm publish --provenance`
+      # for supply-chain attestation. Harmless to keep on otherwise.
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Fail fast before installing/building if the NPM_TOKEN secret is missing.
+      # NOTE: it must be a repository *Secret* (Settings -> Secrets and variables ->
+      # Actions -> "Repository secrets"), NOT a repository *Variable* -- Variables
+      # are plaintext and are not exposed via secrets.*, so publish would 401/404.
+      - name: Verify NPM_TOKEN secret is set
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN secret is missing or empty. Add it under Settings -> Secrets and variables -> Actions -> 'Repository secrets' (NOT Variables), then re-run this workflow."
+            exit 1
+          fi
+          echo "NPM_TOKEN present (length: ${#NPM_TOKEN})"
+
+      - name: Setup Node.js 20.x (with npm registry)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Verify tag matches package.json version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          echo "tag (stripped v): $tag"
+          echo "package.json version: $pkg"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+
+      - name: Build mcp-tools bundle (fresh dist)
+        run: |
+          cd baseline/mcp-tools
+          npm install --ignore-scripts
+          npm run build
+          test -f dist/mcp/server.js || { echo "::error::dist/mcp/server.js missing after build"; exit 1; }
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
