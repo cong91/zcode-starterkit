@@ -279,11 +279,28 @@ export function registerInstalledPlugins({ zcodeHome, packaged, backupRoot = nul
   // Preserve entries from other marketplaces; replace any stale starterkit
   // entries (e.g. from a previous version) so re-install never duplicates.
   const preserved = current.plugins.filter((e) => e && e.marketplace !== MARKETPLACE_NAME)
+  // Each entry MUST carry the full 7-field schema ZCode's CLI loader accepts
+  // (isInstalledPluginRecord / c2o in zcode.cjs): id, name, marketplace,
+  // version, installPath, installedAt, scope. Entries missing any field are
+  // silently dropped, so the plugin's skills/commands/MCP-tools/hooks never
+  // load even though installed_plugins.json lists it. The desktop app's host
+  // loader (readInstalledPluginRoots) is lenient and only reads
+  // id/marketplace/installPath, so the extra fields are harmless there.
+  const installedAt = new Date().toISOString()
+  const buildEntry = (name, pluginDir) => ({
+    id: name,
+    name,
+    marketplace: MARKETPLACE_NAME,
+    version: PLUGIN_VERSION,
+    installPath: path.resolve(pluginDir),
+    installedAt,
+    scope: 'user',
+  })
   const entries = [
-    { id: packaged.coreName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.corePluginDir) },
-    { id: packaged.agentsName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.agentsPluginDir) },
-    { id: packaged.mcpToolsName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.mcpToolsPluginDir) },
-    { id: packaged.hooksName, marketplace: MARKETPLACE_NAME, installPath: path.resolve(packaged.hooksPluginDir) },
+    buildEntry(packaged.coreName, packaged.corePluginDir),
+    buildEntry(packaged.agentsName, packaged.agentsPluginDir),
+    buildEntry(packaged.mcpToolsName, packaged.mcpToolsPluginDir),
+    buildEntry(packaged.hooksName, packaged.hooksPluginDir),
   ]
   const next = { plugins: [...preserved, ...entries] }
   backupIfExists(registryPath, { backupRoot })

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, registerInstalledPlugins, uninstallStarterkit, readCliConfig } from '../src/plugin-packager.mjs'
-import { MARKETPLACE_NAME } from '../src/constants.mjs'
+import { MARKETPLACE_NAME, PLUGIN_VERSION } from '../src/constants.mjs'
 
 function sandboxHome() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'zcode-pkg-'))
@@ -140,6 +140,15 @@ test('registerInstalledPlugins writes 4 entries with absolute installPath + mark
     // installPath must point at a real plugin dir carrying a .zcode-plugin/plugin.json
     assert.ok(fs.existsSync(path.join(e.installPath, '.zcode-plugin', 'plugin.json')),
       `installPath ${e.installPath} must contain .zcode-plugin/plugin.json`)
+    // ZCode's CLI loader (isInstalledPluginRecord / c2o in zcode.cjs) only
+    // accepts entries carrying the full 7-field schema — entries missing any
+    // of name/version/installedAt/scope are silently dropped, so the plugin's
+    // skills/commands never load even though installed_plugins.json lists it.
+    assert.equal(e.name, e.id, `entry name must equal id for ${e.id}`)
+    assert.equal(e.version, PLUGIN_VERSION, `entry version must be PLUGIN_VERSION for ${e.id}`)
+    assert.equal(typeof e.installedAt, 'string', `installedAt must be an ISO string for ${e.id}`)
+    assert.ok(!Number.isNaN(Date.parse(e.installedAt)), `installedAt must parse for ${e.id}`)
+    assert.equal(e.scope, 'user', `global install must set scope=user for ${e.id}`)
   }
   assert.equal(result.registered, 4)
   assert.equal(result.preserved, 0)
