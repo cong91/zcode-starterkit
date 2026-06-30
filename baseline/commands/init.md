@@ -98,6 +98,16 @@ When `codegraph` is available:
    - If `.git/hooks/post-merge`, `post-checkout`, or `post-rewrite` already exists and is not starterkit-managed, do **not** overwrite it.
    - If safe, add local hooks that call `codegraph sync .` best-effort and never block git operations.
    - With `--allow-codegraph-hooks`, the agent may append starterkit-managed refresh snippets into the configured hooks path instead of skipping.
+5. **Verify and repair CodeGraph MCP registration.** CodeGraph only loads in ZCode when its MCP entry is present in the global config. Do not assume a prior `npx zcode-starterkit` registered it — a past install run with `--skip-codegraph` strips the entry, leaving the CLI installed and the index present but the agent unable to query it. This step closes that gap:
+   - Read `~/.zcode/cli/starterkit-state/starterkit-state.json`. If `codegraph.enabled` is `false` (e.g. `reason: "skipped by --skip-codegraph"`), the MCP entry is missing from `~/.zcode/v2/config.json` — repair it.
+   - Check the global config directly: read the `mcp.codegraph` entry from `~/.zcode/v2/config.json`. It must exist with a shape like `{ command: [<codegraph-path>, "serve", "--mcp"], enabled: true, timeout: 120000, type: "local" }`.
+   - If the entry is missing **or** `codegraph.enabled` is `false` in starterkit-state, repair by re-running the global installer without the skip flag:
+     ```bash
+     npx zcode-starterkit install --with-codegraph
+     ```
+     This is idempotent (additive merge + backup) and re-registers the `codegraph` MCP entry into `~/.zcode/v2/config.json`, restoring `codegraph.enabled: true` in starterkit-state. Do **not** hand-edit the config JSON — the installer is the single source of truth for the entry shape.
+   - If the `codegraph` CLI itself is missing (not on PATH, `codegraph --version` fails), do not attempt to register the MCP entry. Instead report the blocker and tell the user to run `npm install -g @colbymchenry/codegraph`, then re-run `/init`.
+   - After repair, re-read the global config and confirm `mcp.codegraph` is present. Report `CodeGraph MCP: registered ✓ (zcode v2/config.json)` or, on failure, `CodeGraph MCP: registration failed — <reason>`.
 
 ## Phase 3: Detect project
 
@@ -237,6 +247,7 @@ Verify:
 - [ ] `.zcode/context/git-context.md` exists (the default `instructions[]` entry resolves — no dangling instruction)
 - [ ] `.zcode/templates/`, `.zcode/workflows/`, `.zcode/plans/` were materialized (missing-only); existing project files preserved
 - [ ] CodeGraph refreshed or explicitly skipped/unavailable
+- [ ] CodeGraph MCP registered in `~/.zcode/v2/config.json` (repaired via `npx zcode-starterkit install --with-codegraph` if missing)
 - [ ] AGENTS.md is created/updated safely
 - [ ] Project commands were detected and validated where practical
 
@@ -245,7 +256,7 @@ Output:
 1. Overlay result: created/preserved files
 2. Memory DB safety: confirm untouched
 3. Materialized reference dirs: templates/ workflows/ plans/ context/ (created/preserved counts)
-4. CodeGraph result: refreshed/skipped/warn
+4. CodeGraph result: indexed + MCP registered ✓ (zcode v2/config.json) / skipped / warn (include the repair action taken if the MCP entry was missing)
 5. Files created/updated
 6. Commands validated
 7. **Starterkit commands available** (installed globally by `npx zcode-starterkit`; if any are not yet visible in the ZCode command palette, restart ZCode so the plugin loader re-reads `installed_plugins.json`):
