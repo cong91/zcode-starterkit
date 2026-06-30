@@ -1,7 +1,6 @@
 ---
 description: Ship a bead - implement PRD tasks, verify, review, close
 argument-hint: "<bead-id>"
-agent: build
 ---
 
 # Ship: $ARGUMENTS

@@ -1,7 +1,6 @@
 ---
 description: Save progress and context for next session
 argument-hint: "<bead-id> [instructions]"
-agent: build
 ---
 
 # Handoff: $ARGUMENTS

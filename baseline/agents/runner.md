@@ -1,7 +1,6 @@
 ---
 name: runner
 description: Lightweight runner for trivial shell, git, and filesystem operations
-mode: subagent
 temperature: 0.0
 permission:
   bash:

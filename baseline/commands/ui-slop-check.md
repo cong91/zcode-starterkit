@@ -1,7 +1,6 @@
 ---
 description: Audit changed UI files for AI slop patterns and design-system violations
 argument-hint: "[path|auto] [--staged] [--since=<ref>] [--full-report]"
-agent: vision
 model: proxypal/gemini-3-pro-preview
 ---
 

@@ -1,7 +1,6 @@
 ---
 description: Organize, deduplicate, and curate knowledge in project memory
 argument-hint: "[--scope recent|all] [--auto-merge]"
-agent: build
 ---
 
 # Curate: $ARGUMENTS

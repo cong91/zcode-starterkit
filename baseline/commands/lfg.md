@@ -1,7 +1,6 @@
 ---
 description: Full autonomous chain - Plan → Ship → Review → Compound in one command
 argument-hint: "<bead-id> [--skip-plan]"
-agent: build
 ---
 
 # LFG (Let's Fucking Go): $ARGUMENTS

@@ -1,7 +1,6 @@
 ---
 description: Create user profile for personalized AI interactions
 argument-hint: "[--skip-questions]"
-agent: build
 ---
 
 # Init-User: $ARGUMENTS

@@ -1,7 +1,6 @@
 ---
 description: Show project status - tasks, git state, recent sessions
 argument-hint: "[--git] [--sessions]"
-agent: build
 ---
 
 # Status: $ARGUMENTS

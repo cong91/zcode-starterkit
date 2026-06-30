@@ -1,7 +1,6 @@
 ---
 description: Create and submit pull request with bead traceability
 argument-hint: "[bead-id] [--draft]"
-agent: build
 ---
 
 # Pull Request

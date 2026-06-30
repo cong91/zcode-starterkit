@@ -1,7 +1,6 @@
 ---
 name: explore
 description: Fast read-only file and code search specialist for locating files, symbols, and usage patterns
-mode: subagent
 temperature: 0.1
 steps: 25
 tools:

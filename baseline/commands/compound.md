@@ -1,7 +1,6 @@
 ---
 description: Extract and persist learnings from completed work into institutional memory
 argument-hint: "[bead-id]"
-agent: build
 ---
 
 # Compound: $ARGUMENTS

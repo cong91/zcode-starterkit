@@ -53,7 +53,7 @@ Four ZCode plugins under the `zcode-starterkit` marketplace, enabled in `~/.zcod
 > **Curated for ZCode (not a raw port):** the 13 workflow skills that overlap with ZCode's native `superpowers@zcode-plugins-official` plugin (brainstorming, writing-plans, test-driven-development, systematic-debugging, verification-before-completion, executing-plans, etc.) were **removed** so ZCode uses the native versions. OpenCode-only model/provider config was **stripped** so ZCode uses its native GLM provider. All `.opencode` path refs in skills/commands were rewritten to `.zcode`, and OpenCode-specific runtime refs (DCP, `opencode run`, plugin TS paths) were adapted to ZCode equivalents.
 
 - **`core`** — 119 curated skills + 27 commands (ported from OpenCode baseline, deduped against native superpowers, paths/CLI refs adapted to ZCode). Also bundles portable content dirs: `templates/`, `workflows/`, `plans/`, `artifacts/`, `dcp-prompts/`, `memory/`, and `context/` (auto-injected + on-demand project context). The `/init` runbook materializes `memory/`, `templates/`, `workflows/`, `plans/`, and `context/` into the per-project `.zcode/` overlay (missing-only, existing files preserved); `artifacts/` and `dcp-prompts/` stay reference-only (the agent reads them via filesystem / `srcwalk_read`).
-- **`agents-config`** — 9 agent definitions (description only, no model refs), merged into `~/.zcode/v2/config.json`. ZCode's native GLM provider supplies the model.
+- **`agents-config`** — 9 agent definitions (`baseline/agents/*.md`), each carrying a system prompt, tool allowlist, and permission profile. Descriptions are mirrored into the `agent{}` map of `~/.zcode/v2/config.json`; full definitions load at runtime from the plugin's `agents/` dir. ZCode's native GLM provider supplies the model. See [Agents](#agents) below for how to invoke them.
 - **`mcp-tools`** — an MCP server (`@modelcontextprotocol/sdk`) porting OpenCode baseline tools as MCP tools (18 tools total):
   - `context7` — library documentation lookup
   - `grepsearch` — real-world code search via grep.app
@@ -88,6 +88,41 @@ The **core** plugin also bundles these portable content dirs from the OpenCode b
 - `dcp.jsonc` — OpenCode DCP (Dynamic Context Pruning) plugin config; ZCode has no DCP.
 - `opencodex-fast.jsonc`, `tui.json` — OpenCode TUI/plugin config; ZCode uses an Electron UI.
 - `baseline/package.json` / `tsconfig.json` — OpenCode TS plugin build files (the ZCode MCP plugin has its own `baseline/mcp-tools/package.json`).
+
+## Agents
+
+The `agents-config` plugin ships 9 agent definitions (`baseline/agents/*.md`), each with its own system prompt, tool allowlist, and permission profile:
+
+| Agent     | Role                                                            | Access      |
+| --------- | --------------------------------------------------------------- | ----------- |
+| `build`   | Primary development agent, full codebase access                 | full        |
+| `plan`    | Architecture, decomposition, executable implementation plans    | full        |
+| `explore` | Read-only codebase search (files, symbols, usage patterns)     | read-only   |
+| `general` | Small, well-defined implementation tasks                        | all (scoped) |
+| `review`  | Read-only code review, debugging, security, regressions         | read-only   |
+| `scout`   | External research (library docs, patterns, release notes)       | research    |
+| `runner`  | Trivial shell/git/filesystem operations                         | bash only   |
+| `painter` | Image generation/editing (Gemini 3 Pro Image)                  | image tools |
+| `vision`  | Read-only visual analysis (UI/UX, a11y, design-system checks)  | read + figma |
+
+### How to run a turn as one of these agents
+
+ZCode exposes plugin agents as **selectable primary agents** (not as dispatchable subagent types). To run a turn under a specific agent:
+
+1. In the composer, type `@` to open the mention menu.
+2. Pick the **`subagents`** category, then choose an agent (e.g. `@scout`).
+3. Type your prompt and send — the selected agent handles that turn with its own system prompt, tools, and permissions.
+
+To switch the session's persistent primary agent, use ZCode's agent switcher.
+
+### What ZCode does NOT support
+
+ZCode's `Agent`/`Task` dispatch tool only accepts the two built-in subagent types — `general-purpose` and `Explore`. Plugin-defined agents (`scout`, `build`, etc.) **cannot** be dispatched as `subagent_type` from another agent or from a command body, and there is no swarm / parallel multi-agent dispatch. Because of this:
+
+- Command frontmatter no longer carries an `agent:` field — ZCode does not bind a command to an agent, so the field was misleading and has been removed.
+- Agent frontmatter no longer carries a `mode:` field — ZCode's agent parser does not read `mode` (it was an OpenCode convention), so it has been removed.
+
+If you want a command to run under a specific agent, @-mention that agent in the composer **before** sending the command (e.g. type `@scout` then `/research <topic>`).
 
 ## CodeGraph integration
 

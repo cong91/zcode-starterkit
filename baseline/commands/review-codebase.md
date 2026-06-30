@@ -1,7 +1,6 @@
 ---
 description: Review code for quality, security, and compliance
 argument-hint: "[path|bead-id|pr-number|'all'] [--quick|--thorough]"
-agent: review
 ---
 
 # Review: $ARGUMENTS

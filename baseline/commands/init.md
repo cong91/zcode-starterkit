@@ -1,7 +1,6 @@
 ---
 description: Initialize project — agent-driven local setup, AGENTS.md creation, stack detection. Run once per project.
 argument-hint: "[--deep]"
-agent: build
 ---
 
 # Init: $ARGUMENTS

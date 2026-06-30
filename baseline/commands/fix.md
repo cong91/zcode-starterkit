@@ -1,7 +1,6 @@
 ---
 description: Debug and fix a bug or failing test
 argument-hint: "<description of bug or error>"
-agent: build
 ---
 
 # Fix: $ARGUMENTS

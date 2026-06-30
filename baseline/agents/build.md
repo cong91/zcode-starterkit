@@ -1,7 +1,6 @@
 ---
 name: build
 description: Primary development agent with full codebase access
-mode: primary
 temperature: 0.1
 permission:
   bash:

@@ -1,7 +1,6 @@
 ---
 description: Create a bead with specification, claim it, and prepare workspace
 argument-hint: "<description> [--type epic|feature|task|bug] [--spec-only]"
-agent: build
 ---
 
 # Create: $ARGUMENTS

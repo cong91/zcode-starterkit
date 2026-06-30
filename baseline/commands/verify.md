@@ -1,7 +1,6 @@
 ---
 description: Verify implementation completeness, correctness, and coherence
 argument-hint: "<bead-id> [--quick] [--full] [--fix] [--no-cache]"
-agent: review
 ---
 
 # Verify: $ARGUMENTS

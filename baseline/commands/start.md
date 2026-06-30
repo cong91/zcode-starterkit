@@ -1,7 +1,6 @@
 ---
 description: Start working on a bead - claim it and prepare workspace
 argument-hint: "<bead-id> [--worktree]"
-agent: build
 ---
 
 # Start: $ARGUMENTS

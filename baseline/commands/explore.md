@@ -1,7 +1,6 @@
 ---
 description: Think through an idea with structured alternatives before committing to a change
 argument-hint: "<idea or question>"
-agent: plan
 ---
 
 # Explore: $ARGUMENTS

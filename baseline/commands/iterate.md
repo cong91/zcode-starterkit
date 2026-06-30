@@ -1,7 +1,6 @@
 ---
 description: Refine PRD mid-implementation when scope changes, discoveries emerge, or requirements pivot
 argument-hint: "<bead-id> [--scope expand|reduce|pivot] [--reason <text>]"
-agent: build
 ---
 
 # Iterate: $ARGUMENTS

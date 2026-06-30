@@ -1,7 +1,6 @@
 ---
 name: vision
 description: Read-only visual analysis specialist for UI/UX review, accessibility audits, and design-system consistency checks. Use Figma MCP (figma-go) context when available.
-mode: subagent
 temperature: 0.2
 steps: 35
 tools:

@@ -1,6 +1,5 @@
 ---
 description: Run garbage collection — Fallow analysis, quality grading, and cleanup PRs
-agent: build
 ---
 
 # Garbage Collection

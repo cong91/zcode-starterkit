@@ -1,7 +1,6 @@
 ---
 description: Audit .zcode/ configuration for consistency, stale references, and enforcement gaps
 argument-hint: "[--fix] [--layer <intent|knowledge|control>]"
-agent: review
 ---
 
 # Health Check: $ARGUMENTS

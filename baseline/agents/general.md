@@ -1,7 +1,6 @@
 ---
 name: general
 description: General-purpose subagent for small, well-defined implementation tasks
-mode: subagent
 temperature: 0.1
 permission:
   bash:

@@ -1,7 +1,6 @@
 ---
 description: Create detailed implementation plan with TDD steps for a bead
 argument-hint: "<bead-id> [--create-beads]"
-agent: plan
 ---
 
 # Plan: $ARGUMENTS

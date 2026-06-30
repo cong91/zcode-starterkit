@@ -1,7 +1,6 @@
 ---
 description: Initialize project planning context (roadmap, state) with optional brownfield analysis
 argument-hint: "[--skip-questions] [--brownfield]"
-agent: build
 ---
 
 # Init-Context: $ARGUMENTS

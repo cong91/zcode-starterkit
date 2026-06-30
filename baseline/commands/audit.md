@@ -1,7 +1,6 @@
 ---
 description: Audit codebase for a specific pattern
 argument-hint: "<pattern>"
-agent: build
 ---
 
 # Audit: $ARGUMENTS

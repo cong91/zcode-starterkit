@@ -1,7 +1,6 @@
 ---
 description: Resume work on a bead from previous session
 argument-hint: "<bead-id>"
-agent: build
 ---
 
 # Resume: $ARGUMENTS

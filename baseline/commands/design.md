@@ -1,7 +1,6 @@
 ---
 description: UI/UX visual design with aesthetic direction and code output
 argument-hint: "<component|page|system> [topic] [--quick]"
-agent: vision
 ---
 
 # Design: $ARGUMENTS

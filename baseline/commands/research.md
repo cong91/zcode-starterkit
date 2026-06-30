@@ -1,7 +1,6 @@
 ---
 description: Research a topic or bead before implementation
 argument-hint: "<topic-or-bead-id> [--quick|--thorough]"
-agent: scout
 ---
 
 # Research: $ARGUMENTS
