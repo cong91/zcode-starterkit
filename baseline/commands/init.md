@@ -81,33 +81,29 @@ done
 
 After copy, inspect what exists and fill any missing project markdown files with repo-specific starter content. Existing files win. Confirm `.zcode/context/git-context.md` exists — it is referenced by the default `instructions[]` and must resolve.
 
-## Phase 2: CodeGraph local intelligence
+## Phase 2: Codebase-Memory code intelligence
 
-If global starterkit enabled CodeGraph during `npx zcode-starterkit`, use it for this project. If CodeGraph is unavailable or disabled, skip cleanly and report `CodeGraph: skipped`.
+If global starterkit enabled Codebase-Memory during `npx zcode-starterkit`, use it for this project. If Codebase-Memory is unavailable or disabled, skip cleanly and report `Codebase-Memory: skipped`.
 
-When `codegraph` is available:
+When `codebase-memory-mcp` is available:
 
-1. Ensure `.codegraph/` is ignored locally. Prefer `.git/info/exclude`; only edit tracked `.gitignore` if the project already uses it for local tool state and the user approves.
-2. Do not index linked worktree clones whose `.git` is a file; report that CodeGraph should be refreshed in the source-origin checkout.
-3. Run status-driven refresh:
-   - not initialized → `codegraph init .`
-   - `reindexRecommended: true` → `codegraph index .`
-   - otherwise → `codegraph sync .`
-4. Auto-refresh git hooks are optional and must be safe:
-   - If `git config --get core.hooksPath` returns a path (Husky/custom hooks), do **not** install hooks unless the advanced opt-in is explicitly enabled.
-   - If `.git/hooks/post-merge`, `post-checkout`, or `post-rewrite` already exists and is not starterkit-managed, do **not** overwrite it.
-   - If safe, add local hooks that call `codegraph sync .` best-effort and never block git operations.
-   - With `--allow-codegraph-hooks`, the agent may append starterkit-managed refresh snippets into the configured hooks path instead of skipping.
-5. **Verify and repair CodeGraph MCP registration.** CodeGraph only loads in ZCode when its MCP entry is present in the global config. Do not assume a prior `npx zcode-starterkit` registered it — a past install run with `--skip-codegraph` strips the entry, leaving the CLI installed and the index present but the agent unable to query it. This step closes that gap:
-   - Read `~/.zcode/cli/starterkit-state/starterkit-state.json`. If `codegraph.enabled` is `false` (e.g. `reason: "skipped by --skip-codegraph"`), the MCP entry is missing from `~/.zcode/v2/config.json` — repair it.
-   - Check the global config directly: read the `mcp.codegraph` entry from `~/.zcode/v2/config.json`. It must exist with a shape like `{ command: [<codegraph-path>, "serve", "--mcp"], enabled: true, timeout: 120000, type: "local" }`.
-   - If the entry is missing **or** `codegraph.enabled` is `false` in starterkit-state, repair by re-running the global installer without the skip flag:
+1. Codebase-Memory stores its index globally at `~/.cache/codebase-memory-mcp/` (NOT per-project), so no `.gitignore`/`.git/info/exclude` entry is needed for it. (The legacy `.codegraph/` directory, if present from a prior CodeGraph install, may be removed — it is no longer used.)
+2. Do not index linked worktree clones whose `.git` is a file; report that Codebase-Memory should be indexed in the source-origin checkout.
+3. Index or refresh the project. **Use forward-slash paths** (`C:/Users/...` on Windows, not `C:\Users\...`) — backslash Windows paths cause `pipeline.err phase=discover`:
+   - Check current status: `codebase-memory-mcp cli list_projects`
+   - Index: `codebase-memory-mcp cli index_repository '{"repo_path":"<forward-slash-absolute-path>"}'`
+   - Verify: `codebase-memory-mcp cli list_projects` should show the project with `nodes` > 0.
+4. Codebase-Memory has no per-project git hooks (unlike the legacy CodeGraph). It auto-syncs via a background watcher. Skip the git-hooks step entirely.
+5. **Verify and repair Codebase-Memory MCP registration.** Codebase-Memory only loads in ZCode when its MCP entry is present in the global config. Do not assume a prior `npx zcode-starterkit` registered it — a past install run with `--skip-codebase-memory` strips the entry, leaving the binary installed and the index present but the agent unable to query it. This step closes that gap:
+   - Read `~/.zcode/cli/starterkit-state/starterkit-state.json`. If `codebaseMemory.enabled` is `false` (e.g. `reason: "skipped by --skip-codebase-memory"`), the MCP entry is missing from `~/.zcode/v2/config.json` — repair it.
+   - Check the global config directly: read the `mcp["codebase-memory-mcp"]` entry from `~/.zcode/v2/config.json`. It must exist with a shape like `{ command: ["<binary-path>"], enabled: true, timeout: 120000, type: "local" }`.
+   - If the entry is missing **or** `codebaseMemory.enabled` is `false` in starterkit-state, repair by re-running the global installer without the skip flag:
      ```bash
-     npx zcode-starterkit install --with-codegraph
+     npx zcode-starterkit install --with-codebase-memory
      ```
-     This is idempotent (additive merge + backup) and re-registers the `codegraph` MCP entry into `~/.zcode/v2/config.json`, restoring `codegraph.enabled: true` in starterkit-state. Do **not** hand-edit the config JSON — the installer is the single source of truth for the entry shape.
-   - If the `codegraph` CLI itself is missing (not on PATH, `codegraph --version` fails), do not attempt to register the MCP entry. Instead report the blocker and tell the user to run `npm install -g @colbymchenry/codegraph`, then re-run `/init`.
-   - After repair, re-read the global config and confirm `mcp.codegraph` is present. Report `CodeGraph MCP: registered ✓ (zcode v2/config.json)` or, on failure, `CodeGraph MCP: registration failed — <reason>`.
+     This is idempotent (additive merge + backup) and re-registers the `codebase-memory-mcp` MCP entry into `~/.zcode/v2/config.json`, restoring `codebaseMemory.enabled: true` in starterkit-state. Do **not** hand-edit the config JSON — the installer is the single source of truth for the entry shape.
+   - If the `codebase-memory-mcp` binary itself is missing (not on PATH, `codebase-memory-mcp --version` fails), do not attempt to register the MCP entry. Instead report the blocker and tell the user to run `npx zcode-starterkit install --with-codebase-memory` (auto-downloads the binary), then re-run `/init`.
+   - After repair, re-read the global config and confirm `mcp["codebase-memory-mcp"]` is present. Report `Codebase-Memory MCP: registered ✓ (zcode v2/config.json)` or, on failure, `Codebase-Memory MCP: registration failed — <reason>`.
 
 ## Phase 3: Detect project
 
@@ -246,8 +242,8 @@ Verify:
 - [ ] Missing project memory files were created; existing memory markdown was preserved
 - [ ] `.zcode/context/git-context.md` exists (the default `instructions[]` entry resolves — no dangling instruction)
 - [ ] `.zcode/templates/`, `.zcode/workflows/`, `.zcode/plans/` were materialized (missing-only); existing project files preserved
-- [ ] CodeGraph refreshed or explicitly skipped/unavailable
-- [ ] CodeGraph MCP registered in `~/.zcode/v2/config.json` (repaired via `npx zcode-starterkit install --with-codegraph` if missing)
+- [ ] Codebase-Memory indexed or explicitly skipped/unavailable
+- [ ] Codebase-Memory MCP registered in `~/.zcode/v2/config.json` (repaired via `npx zcode-starterkit install --with-codebase-memory` if missing)
 - [ ] AGENTS.md is created/updated safely
 - [ ] Project commands were detected and validated where practical
 

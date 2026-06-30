@@ -12,10 +12,10 @@ function freshSandbox() {
 
 test('sandbox install produces plugins, marketplace, enabledPlugins, merged config', async () => {
   const home = freshSandbox()
-  // Skip CodeGraph + WebClaw resolution in sandbox so the test never spawns a
-  // real `npm install -g` / binary download. These integrations have their own
-  // unit tests; sandbox tests only verify plugin packaging + config merge.
-  await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodegraph: true, skipWebclaw: true } })
+  // Skip Codebase-Memory + WebClaw resolution in sandbox so the test never spawns a
+  // real binary download. These integrations have their own unit tests; sandbox
+  // tests only verify plugin packaging + config merge.
+  await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodebaseMemory: true, skipWebclaw: true } })
 
   const coreDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', PLUGIN_VERSION)
   const agentsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'agents-config', PLUGIN_VERSION)
@@ -79,9 +79,9 @@ test('sandbox install produces plugins, marketplace, enabledPlugins, merged conf
   assert.equal(cfg.provider, undefined, 'OpenCode-only provider block must be stripped (ZCode uses native providers)')
   assert.ok(cfg.agent.build && !cfg.agent.build.model, 'agent.build must keep description but drop OpenCode model ref')
 
-  // CodeGraph + WebClaw were skipped, so the merged config must NOT carry their
+  // Codebase-Memory + WebClaw were skipped, so the merged config must NOT carry their
   // starterkit-managed MCP entries (and the baseline has neither by default).
-  assert.ok(!cfg.mcp?.codegraph, 'codegraph MCP must be absent when CodeGraph is skipped')
+  assert.ok(!cfg.mcp?.['codebase-memory-mcp'], 'codebase-memory-mcp MCP must be absent when Codebase-Memory is skipped')
   assert.ok(!cfg.mcp?.webclaw, 'webclaw MCP must be absent when WebClaw is skipped')
 })
 
@@ -92,7 +92,7 @@ test('sandbox install writes only under the sandbox home, never the real ~/.zcod
   // this test cannot prove isolation.
   assert.notEqual(path.resolve(home), path.resolve(realZcode), 'sandbox home must differ from real ~/.zcode')
 
-  await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodegraph: true, skipWebclaw: true } })
+  await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodebaseMemory: true, skipWebclaw: true } })
 
   // Everything produced by the install must live under the sandbox home.
   const cacheRoot = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit')
@@ -107,7 +107,7 @@ test('sandbox install writes only under the sandbox home, never the real ~/.zcod
 
 test('sandbox install copies ~130+ skills and ~24+ commands', async () => {
   const home = freshSandbox()
-  await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodegraph: true, skipWebclaw: true } })
+  await installGlobal({ cwd: process.cwd(), zcodeHome: home, skipShims: true, options: { skipCodebaseMemory: true, skipWebclaw: true } })
   const skillsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', PLUGIN_VERSION, 'skills')
   const commandsDir = path.join(home, 'cli', 'plugins', 'cache', 'zcode-starterkit', 'core', PLUGIN_VERSION, 'commands')
   const skillCount = fs.readdirSync(skillsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).length

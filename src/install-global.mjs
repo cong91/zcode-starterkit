@@ -9,7 +9,8 @@ import {
 import { backupIfExists, ensureDir, exists, writeText } from './fs-utils.mjs'
 import { readJson, writeJson, writeMergeManifest, mergeZcodeConfigAdditive, normalizeZcodeConfig } from './config-merge.mjs'
 import { packageBaselineAsPlugins, registerMarketplace, enablePlugins, registerInstalledPlugins, mergeStarterkitToolsMcpConfig } from './plugin-packager.mjs'
-import { detectCodegraphCli, getCodegraphInstallCommand, installCodegraphCli, installCodegraphGitHooks, mergeCodegraphMcpConfig, removeStarterkitCodegraphMcpConfig, writeCodegraphIntegrationState } from './codegraph.mjs'
+import { detectCodebaseMemoryCli, getCodebaseMemoryInstallCommand, installCodebaseMemoryCli, mergeCodebaseMemoryMcpConfig, removeStarterkitCodebaseMemoryMcpConfig, writeCodebaseMemoryIntegrationState } from './codebase-memory.mjs'
+import { removeStarterkitCodegraphMcpConfig } from './codegraph.mjs'
 import { detectWebclawCli, getWebclawInstallCommand, installWebclawCli, mergeWebclawMcpConfig, removeStarterkitWebclawMcpConfig, writeWebclawIntegrationState } from './webclaw.mjs'
 
 function buildWindowsCmdShim({ scriptPath }) {
@@ -46,19 +47,22 @@ function installCliShims({ platform = process.platform } = {}) {
   return specs.map((spec) => spec.shimPath)
 }
 
-function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodegraph = false, codegraphCommandPath = null, enableWebclaw = false, webclawCommandPath = null, mcpToolsPluginDir = null }) {
+function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodebaseMemory = false, codebaseMemoryCommandPath = null, enableWebclaw = false, webclawCommandPath = null, mcpToolsPluginDir = null }) {
   const baselinePath = path.join(ZCODE_STARTERKIT_BASELINE_ROOT, 'config.json')
   const globalPath = path.join(zcodeHome, 'v2', 'config.json')
   if (!exists(baselinePath)) return { merged: false, reason: 'missing baseline/config.json' }
   const baseline = readJson(baselinePath)
   const current = exists(globalPath) ? readJson(globalPath) : {}
   const merged = mergeZcodeConfigAdditive({ current, baseline })
+  // Migration: strip any legacy codegraph MCP entry (replaced by codebase-memory-mcp).
+  // removeStarterkitCodegraphMcpConfig is shape-checked, so user entries are safe.
+  const withoutLegacyCodegraph = removeStarterkitCodegraphMcpConfig(merged)
   // Apply starterkit-managed MCP entries AFTER the additive merge so the
-  // codegraph/webclaw servers are only present when their CLIs were actually
+  // codebase-memory/webclaw servers are only present when their CLIs were actually
   // enabled by install-global. When disabled, any stale starterkit-shaped
   // entry is stripped so the agent never loads a missing MCP server.
-  const withCodegraph = enableCodegraph ? mergeCodegraphMcpConfig(merged, { commandPath: codegraphCommandPath }) : removeStarterkitCodegraphMcpConfig(merged)
-  const withOptionalMcp = enableWebclaw ? mergeWebclawMcpConfig(withCodegraph, { commandPath: webclawCommandPath }) : removeStarterkitWebclawMcpConfig(withCodegraph)
+  const withCodebaseMemory = enableCodebaseMemory ? mergeCodebaseMemoryMcpConfig(withoutLegacyCodegraph, { commandPath: codebaseMemoryCommandPath }) : removeStarterkitCodebaseMemoryMcpConfig(withoutLegacyCodegraph)
+  const withOptionalMcp = enableWebclaw ? mergeWebclawMcpConfig(withCodebaseMemory, { commandPath: webclawCommandPath }) : removeStarterkitWebclawMcpConfig(withCodebaseMemory)
   // Wire the starterkit-tools MCP server (memory/codesearch) into config.json.
   // The plugin manifest declares mcpServers, but ZCode only spawns servers
   // listed in config.json mcp{} — without this the memory tools never load.
@@ -82,7 +86,7 @@ function mergeGlobalConfig({ zcodeHome, stateRoot, enableCodegraph = false, code
   return { merged: true, globalPath, manifestPath, normalizedChanges: normalized.changes, providerNames: normalized.providerNames }
 }
 
-function buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult, codegraphResult, webclawResult, hookResult }) {
+function buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult, codebaseMemoryResult, webclawResult }) {
   return [
     `[zcode-starterkit] install started: ${new Date().toISOString()}`,
     `[zcode-starterkit] cwd=${cwd}`,
@@ -95,45 +99,46 @@ function buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult
     registryResult ? `[zcode-starterkit] registered plugins=${registryResult.registered} preserved=${registryResult.preserved} at ${registryResult.registryPath}` : `[zcode-starterkit] registry=not-written`,
     mergeResult?.merged ? `[zcode-starterkit] merged config=${mergeResult.globalPath}` : `[zcode-starterkit] merge skipped=${mergeResult?.reason || 'unknown'}`,
     mergeResult?.manifestPath ? `[zcode-starterkit] merge manifest=${mergeResult.manifestPath}` : `[zcode-starterkit] merge manifest=none`,
-    codegraphResult ? `[zcode-starterkit] codegraph=${JSON.stringify(codegraphResult)}` : `[zcode-starterkit] codegraph=not-checked`,
+    codebaseMemoryResult ? `[zcode-starterkit] codebase-memory=${JSON.stringify(codebaseMemoryResult)}` : `[zcode-starterkit] codebase-memory=not-checked`,
     webclawResult ? `[zcode-starterkit] webclaw=${JSON.stringify(webclawResult)}` : `[zcode-starterkit] webclaw=not-checked`,
-    hookResult ? `[zcode-starterkit] codegraph-hooks=${JSON.stringify(hookResult)}` : `[zcode-starterkit] codegraph-hooks=not-checked`,
   ].join('\n') + '\n'
 }
 
-// --- CodeGraph integration (mirrors opencode-starterkit, auto-install by default) ---
-export async function resolveCodegraphSetup(options = {}, deps = {}) {
-  const detect = deps.detectCodegraphCli || detectCodegraphCli
-  const install = deps.installCodegraphCli || installCodegraphCli
-  if (options.skipCodegraph) {
-    return { enabled: false, skipped: true, reason: 'skipped by --skip-codegraph' }
+// --- Codebase-Memory integration (replaces CodeGraph; auto-install by default) ---
+// codebase-memory-mcp is a pure-C code-intelligence MCP server: 158 languages,
+// Cypher queries, call-graph trace, dead-code detection, architecture overview.
+export async function resolveCodebaseMemorySetup(options = {}, deps = {}) {
+  const detect = deps.detectCodebaseMemoryCli || detectCodebaseMemoryCli
+  const install = deps.installCodebaseMemoryCli || installCodebaseMemoryCli
+  if (options.skipCodebaseMemory) {
+    return { enabled: false, skipped: true, reason: 'skipped by --skip-codebase-memory' }
   }
 
   const current = detect()
   if (current.ok) {
-    console.log(`[zcode-starterkit] CodeGraph found: ${current.path}`)
-    console.log('[zcode-starterkit] CodeGraph integration enabled: MCP, project indexing, and auto-refresh hooks are available.')
-    if (current.version) console.log(`[zcode-starterkit] CodeGraph version: ${current.version}`)
+    console.log(`[zcode-starterkit] Codebase-Memory found: ${current.path}`)
+    console.log('[zcode-starterkit] Codebase-Memory integration enabled: MCP code-intelligence (call graphs, Cypher, dead-code, architecture).')
+    if (current.version) console.log(`[zcode-starterkit] Codebase-Memory version: ${current.version}`)
     return { enabled: true, installed: false, path: current.path, version: current.version, source: 'existing' }
   }
 
-  console.warn('[zcode-starterkit] CodeGraph CLI was not found. Install will auto-install it unless you pass --skip-codegraph.')
-  console.warn('[zcode-starterkit] Installing CodeGraph is part of the default starterkit experience because project intelligence, refresh hooks, and MCP rely on it.')
-  console.warn(`[zcode-starterkit] Install command: ${getCodegraphInstallCommand()}`)
+  console.warn('[zcode-starterkit] Codebase-Memory binary was not found. Install will auto-download it unless you pass --skip-codebase-memory.')
+  console.warn('[zcode-starterkit] Codebase-Memory is the default code-intelligence engine (replaces CodeGraph): call graphs, Cypher, dead-code, 158 languages.')
+  console.warn(`[zcode-starterkit] Install command: ${getCodebaseMemoryInstallCommand()}`)
 
-  console.log(`[zcode-starterkit] Installing CodeGraph via: ${getCodegraphInstallCommand()}`)
-  const installResult = install()
+  console.log(`[zcode-starterkit] Installing Codebase-Memory via: ${getCodebaseMemoryInstallCommand()}`)
+  const installResult = await install()
   const after = detect()
   if (!after.ok) {
-    const message = `CodeGraph install did not make codegraph executable on PATH. Try manually: ${getCodegraphInstallCommand()}`
-    if (options.requireCodegraph) throw new Error(message)
+    const message = `Codebase-Memory install did not make codebase-memory-mcp executable on PATH. Try manually: ${getCodebaseMemoryInstallCommand()}`
+    if (options.requireCodebaseMemory) throw new Error(message)
     console.warn(`[zcode-starterkit] ${message}`)
     return { enabled: false, installed: false, skipped: true, reason: message, installStatus: installResult?.status }
   }
 
-  console.log(`[zcode-starterkit] CodeGraph installed: ${after.path}`)
-  console.log('[zcode-starterkit] CodeGraph integration enabled: MCP, project indexing, and auto-refresh hooks are available.')
-  if (after.version) console.log(`[zcode-starterkit] CodeGraph version: ${after.version}`)
+  console.log(`[zcode-starterkit] Codebase-Memory installed: ${after.path}`)
+  console.log('[zcode-starterkit] Codebase-Memory integration enabled: MCP code-intelligence (call graphs, Cypher, dead-code, architecture).')
+  if (after.version) console.log(`[zcode-starterkit] Codebase-Memory version: ${after.version}`)
   return { enabled: true, installed: true, path: after.path, version: after.version, installStatus: installResult?.status, source: 'installed' }
 }
 
@@ -174,8 +179,8 @@ async function resolveWebclawSetup(options = {}) {
   return { enabled: true, installed: true, path: after.path, version: after.version, installStatus: install.status, source: 'installed' }
 }
 
-async function recordCodegraphState(result, options = {}, statePath) {
-  writeCodegraphIntegrationState(result.enabled
+async function recordCodebaseMemoryState(result, statePath) {
+  writeCodebaseMemoryIntegrationState(result.enabled
     ? {
         enabled: true,
         installed: Boolean(result.installed),
@@ -183,12 +188,10 @@ async function recordCodegraphState(result, options = {}, statePath) {
         version: result.version || null,
         reason: result.reason || null,
         source: result.source || 'existing',
-        allowCustomHooksPath: Boolean(options.allowCodegraphHooks),
       }
     : {
         enabled: false,
         reason: result.reason || 'disabled by user or unavailable',
-        allowCustomHooksPath: Boolean(options.allowCodegraphHooks),
       }, statePath)
 }
 
@@ -236,22 +239,19 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
   // and this registry — without it, the cached plugins never load.
   const registryResult = registerInstalledPlugins({ zcodeHome, packaged, backupRoot: path.join(stateRoot, 'backups') })
 
-  // Resolve CodeGraph + WebClaw integrations BEFORE the config merge so their
+  // Resolve Codebase-Memory + WebClaw integrations BEFORE the config merge so their
   // MCP entries can be added (or stripped) conditionally. Both auto-install by
-  // default; --skip-codegraph / --skip-webclaw opt out.
-  const codegraphResult = await resolveCodegraphSetup(options)
-  await recordCodegraphState(codegraphResult, options, starterkitStatePath)
+  // default; --skip-codebase-memory / --skip-webclaw opt out.
+  const codebaseMemoryResult = await resolveCodebaseMemorySetup(options)
+  await recordCodebaseMemoryState(codebaseMemoryResult, starterkitStatePath)
   const webclawResult = await resolveWebclawSetup(options)
   await recordWebclawState(webclawResult, starterkitStatePath)
-  const hookResult = codegraphResult.enabled
-    ? installCodegraphGitHooks(cwd, { allowCustomHooksPath: Boolean(options.allowCodegraphHooks) })
-    : { ok: true, skipped: true, reason: codegraphResult.reason || 'CodeGraph disabled or unavailable', repoRoot: cwd }
 
   const mergeResult = mergeGlobalConfig({
     zcodeHome,
     stateRoot,
-    enableCodegraph: codegraphResult.enabled,
-    codegraphCommandPath: codegraphResult.path || null,
+    enableCodebaseMemory: codebaseMemoryResult.enabled,
+    codebaseMemoryCommandPath: codebaseMemoryResult.path || null,
     enableWebclaw: webclawResult.enabled,
     webclawCommandPath: webclawResult.path || null,
     mcpToolsPluginDir: packaged.mcpToolsPluginDir,
@@ -263,7 +263,7 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
 
   const logDir = path.join(stateRoot, 'logs')
   const installLogPath = path.join(logDir, `install-${new Date().toISOString().replace(/[:.]/g, '-')}.log`)
-  writeText(installLogPath, buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult, codegraphResult, webclawResult, hookResult }))
+  writeText(installLogPath, buildInstallLog({ cwd, zcodeHome, packaged, registryResult, mergeResult, codebaseMemoryResult, webclawResult }))
 
   console.log(`[zcode-starterkit] Packaged plugins under ${path.dirname(packaged.corePluginDir)}`)
   console.log(`[zcode-starterkit] Registered marketplace zcode-starterkit`)
@@ -275,10 +275,10 @@ export async function installGlobal({ cwd, zcodeHome = ZCODE_HOME, skipShims = f
   } else {
     console.log(`[zcode-starterkit] Skipped global config merge: ${mergeResult.reason}`)
   }
-  if (codegraphResult.enabled) {
-    console.log('[zcode-starterkit] CodeGraph MCP and project intelligence integration enabled')
+  if (codebaseMemoryResult.enabled) {
+    console.log('[zcode-starterkit] Codebase-Memory MCP and project intelligence integration enabled')
   } else {
-    console.log(`[zcode-starterkit] CodeGraph integration disabled: ${codegraphResult.reason || 'not available'}`)
+    console.log(`[zcode-starterkit] Codebase-Memory integration disabled: ${codebaseMemoryResult.reason || 'not available'}`)
   }
   if (webclawResult.enabled) {
     console.log('[zcode-starterkit] WebClaw MCP integration enabled')
